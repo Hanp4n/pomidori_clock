@@ -1,0 +1,33 @@
+export type {
+  LocalUser,
+  NewLocalUser,
+  LocalPomodoroConfig,
+  NewLocalPomodoroConfig,
+  LocalTask,
+  NewLocalTask,
+  LocalPomodoroSession,
+  NewLocalPomodoroSession,
+  LocalCategory,
+  NewLocalCategory,
+  LocalTaskCategory,
+  NewLocalTaskCategory,
+} from './schema.sqlite';
+
+export type {
+  RemoteUser,
+  NewRemoteUser,
+  RemotePomodoroConfig,
+  NewRemotePomodoroConfig,
+  RemoteTask,
+  NewRemoteTask,
+  RemotePomodoroSession,
+  NewRemotePomodoroSession,
+  RemoteCategory,
+  NewRemoteCategory,
+  RemoteTaskCategory,
+  NewRemoteTaskCategory,
+  RemoteRequest,
+  NewRemoteRequest,
+  RemoteFriend,
+  NewRemoteFriend,
+} from './schema.postgres';
