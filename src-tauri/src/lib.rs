@@ -27,7 +27,7 @@ pub fn run() {
             kind: MigrationKind::Up,
         },
     ];
-    println!("Running Tauri application with SQL migrations...");
+    //println!("Running Tauri application with SQL migrations...");
     tauri::Builder::default()
         .plugin(
             tauri_plugin_sql::Builder::new()
@@ -42,7 +42,7 @@ pub fn run() {
                         .build(),
                 )?
             }
-            println!("Done");
+            //println!("Done");
             Ok(())
         })
         .run(tauri::generate_context!())
