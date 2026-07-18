@@ -1,0 +1,2 @@
+ALTER TABLE "TaskCategory" ADD COLUMN "id" TEXT;
+ALTER TABLE "PomodoroConfig" ADD COLUMN "id" TEXT;
