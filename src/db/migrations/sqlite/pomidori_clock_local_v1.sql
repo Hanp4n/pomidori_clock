@@ -164,26 +164,26 @@ CREATE INDEX "idx_pomodorosession_user_started" ON "PomodoroSession" ("user_id",
 -- always forces is_completed = 1. Below that threshold,
 -- is_completed is left as whatever was explicitly written (manual
 -- early-completion is allowed).
-CREATE TRIGGER "trg_tasks_completion_insert"
-AFTER INSERT ON "Task"
-FOR EACH ROW
-WHEN NEW."completed_pomodoros" >= NEW."n_pomodoros" AND NEW."is_completed" = 0
-BEGIN
-  UPDATE "Task" 
-  SET "is_completed" = 1,
-      "is_synced" = 0,                             
-      "updated_at" = CURRENT_TIMESTAMP             
-  WHERE "id" = NEW."id";
-END;
+-- CREATE TRIGGER "trg_tasks_completion_insert"
+-- AFTER INSERT ON "Task"
+-- FOR EACH ROW
+-- WHEN NEW."completed_pomodoros" >= NEW."n_pomodoros" AND NEW."is_completed" = 0
+-- BEGIN
+--   UPDATE "Task" 
+--   SET "is_completed" = 1,
+--       "is_synced" = 0,                             
+--       "updated_at" = CURRENT_TIMESTAMP             
+--   WHERE "id" = NEW."id";
+-- END;
 
-CREATE TRIGGER "trg_tasks_completion_update"
-AFTER UPDATE OF "completed_pomodoros", "n_pomodoros" ON "Task"
-FOR EACH ROW
-WHEN NEW."completed_pomodoros" >= NEW."n_pomodoros" AND NEW."is_completed" = 0
-BEGIN
-  UPDATE "Task" 
-  SET "is_completed" = 1,
-      "is_synced" = 0,                             
-      "updated_at" = CURRENT_TIMESTAMP             
-  WHERE "id" = NEW."id";
-END;
+-- CREATE TRIGGER "trg_tasks_completion_update"
+-- AFTER UPDATE OF "completed_pomodoros", "n_pomodoros" ON "Task"
+-- FOR EACH ROW
+-- WHEN NEW."completed_pomodoros" >= NEW."n_pomodoros" AND NEW."is_completed" = 0
+-- BEGIN
+--   UPDATE "Task" 
+--   SET "is_completed" = 1,
+--       "is_synced" = 0,                             
+--       "updated_at" = CURRENT_TIMESTAMP             
+--   WHERE "id" = NEW."id";
+-- END;
