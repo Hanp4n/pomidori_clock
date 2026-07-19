@@ -48,7 +48,7 @@ CREATE TABLE "User" (
   "email" TEXT UNIQUE,
   "is_guest" INTEGER NOT NULL DEFAULT 0 CHECK ("is_guest" IN (0, 1)),
   "session_token" TEXT,
-  "created_at" TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  "created_at" TEXT NOT NULL ,
   CHECK ("is_guest" = 1 OR ("username" IS NOT NULL AND "email" IS NOT NULL))
 );
 
@@ -64,8 +64,8 @@ CREATE TABLE "PomodoroConfig" (
   "focus_time" INTEGER NOT NULL,
   "short_break_time" INTEGER NOT NULL,
   "long_break_time" INTEGER NOT NULL,
-  "created_at" TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  "updated_at" TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  "created_at" TEXT NOT NULL ,
+  "updated_at" TEXT NOT NULL ,
   "deleted_at" TEXT,
   "is_synced" INTEGER NOT NULL DEFAULT 0 CHECK ("is_synced" IN (0, 1)),
   FOREIGN KEY ("user_id") REFERENCES "User" ("id")
@@ -82,8 +82,8 @@ CREATE TABLE "Task" (
   "n_pomodoros" INTEGER NOT NULL DEFAULT 1,
   "completed_pomodoros" INTEGER NOT NULL DEFAULT 0,
   "is_completed" INTEGER NOT NULL DEFAULT 0 CHECK ("is_completed" IN (0, 1)),
-  "updated_at" TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  "created_at" TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  "updated_at" TEXT NOT NULL ,
+  "created_at" TEXT NOT NULL ,
   "deleted_at" TEXT,
   "is_synced" INTEGER NOT NULL DEFAULT 0 CHECK ("is_synced" IN (0, 1)),
   FOREIGN KEY ("user_id") REFERENCES "User" ("id")
@@ -104,7 +104,7 @@ CREATE TABLE "PomodoroSession" (
   "duration" INTEGER NOT NULL DEFAULT 0,
   "started_at" TEXT NOT NULL,
   "ended_at" TEXT,
-  "updated_at" TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  "updated_at" TEXT NOT NULL ,
   "deleted_at" TEXT,
   "is_synced" INTEGER NOT NULL DEFAULT 0 CHECK ("is_synced" IN (0, 1)),
   FOREIGN KEY ("user_id") REFERENCES "User" ("id"),
@@ -119,8 +119,8 @@ CREATE TABLE "Category" (
   "user_id" TEXT NOT NULL,
   "name" TEXT NOT NULL,
   "color" TEXT NOT NULL DEFAULT '#FFFFFF',
-  "updated_at" TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  "created_at" TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  "updated_at" TEXT NOT NULL,
+  "created_at" TEXT NOT NULL,
   "deleted_at" TEXT,
   "is_synced" INTEGER NOT NULL DEFAULT 0 CHECK ("is_synced" IN (0, 1)),
   FOREIGN KEY ("user_id") REFERENCES "User" ("id")
@@ -134,7 +134,7 @@ CREATE UNIQUE INDEX "idx_category_user_name" ON "Category" ("user_id", "name");
 CREATE TABLE "TaskCategory" (
   "task_id" TEXT NOT NULL,
   "category_id" TEXT NOT NULL,
-  "created_at" TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  "created_at" TEXT NOT NULL,
   "deleted_at" TEXT,
   "is_synced" INTEGER NOT NULL DEFAULT 0 CHECK ("is_synced" IN (0, 1)),
   PRIMARY KEY ("task_id", "category_id"),
