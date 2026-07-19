@@ -53,8 +53,8 @@ CREATE TABLE "User" (
 );
 
 -- Sentinel guest row. All guest-mode data FKs to this fixed id.
-INSERT INTO "User" ("id", "username", "email", "is_guest")
-VALUES ('00000000-0000-0000-0000-000000000000', 'guest', NULL, 1);
+INSERT INTO "User" ("id", "username", "email", "is_guest", "created_at")
+VALUES ('00000000-0000-0000-0000-000000000000', 'guest', NULL, 1, CURRENT_TIMESTAMP);
 
 -- ------------------------------------------------------------
 -- PomodoroConfig
