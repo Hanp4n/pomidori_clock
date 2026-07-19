@@ -98,14 +98,14 @@ export const updateAppState = (session: Record<string, unknown>): SqlOperation =
 export const deleteAppState = (session: Record<string, unknown>): SqlOperation =>
   buildDeleteOperation('AppState', session.id);
 
-// export const createUser = (session: Record<string, unknown>): SqlOperation =>
-//   buildInsertOperation('User', session);
+export const createUser = (user: Record<string, unknown>): SqlOperation =>
+  buildInsertOperation('User', user);
 
-// export const updateUser = (session: Record<string, unknown>): SqlOperation =>
-//   buildUpdateOperation('User', session);
+export const updateUser = (user: Record<string, unknown>): SqlOperation =>
+  buildUpdateOperation('User', user);
 
-// export const deleteUser = (session: Record<string, unknown>): SqlOperation =>
-//   buildDeleteOperation('User', session.id);
+export const deleteUser = (user: Record<string, unknown>): SqlOperation =>
+  buildDeleteOperation('User', user.id);
 
 type OperationType = 'INSERT' | 'UPDATE' | 'DELETE';
 
