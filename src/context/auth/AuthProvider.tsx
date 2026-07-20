@@ -22,84 +22,102 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return await db.select('SELECT id, username, email, is_guest , access_token , refresh_token, created_at FROM "User" ORDER BY created_at DESC') as LocalUser[];
   }
 
-  // async function bootstrap() {
-  //   if (!db) { return; }
+  async function fetchSignedUser (email: string) {
+    if (!db) return;
+    const existing = (await db.select('SELECT id, username, email, is_guest, access_token, refresh_token, created_at FROM "User" WHERE email = $1 LIMIT 1', [signInEmail.trim()])) as LocalUser[];
 
-  //   const state = await db.select<{ active_user_id: string | null }[]>(
-  //     `SELECT active_user_id FROM "AppState" WHERE id = 1`
-  //   );
-  //   const activeUserId = state[0]?.active_user_id;
+    let user: LocalUser = existing[0];
 
-  //   if (!activeUserId) {
-  //     setStatus('guest');
-  //     setLocalUserId(GUEST_ID);
-  //     return;
-  //   }
+    if (!user) {
+      const { data, error } = await supabase
+        .schema('pomidori_clock')
+        .from('User')
+        .select('id, username, email, created_at')
+        .eq('email', email)
+        .maybeSingle();
 
-  //   const rows = await db.select<{ id: string; access_token: string; refresh_token: string }[]>(
-  //     `SELECT id, access_token, refresh_token FROM "User" WHERE id = $1`,
-  //     [activeUserId]
-  //   );
+      if (error || !data) throw new Error('Failed to fetch a remote user.');
+      user = {
+        ...data,
+        is_guest: 0,
+        refresh_token: null,
+        access_token: null
+      }
+      const { sql, values } = createUser(user);
+      await db.execute(sql, values);
+    }
 
-  //   if (rows.length === 0) {
-  //     // active_user_id pointed at a row that no longer exists — reset and fall back
+    if (!user) throw new Error('Failed to create or find local user.');
+    return user;
+  }
 
-  //     await db.execute(`UPDATE "AppState" SET active_user_id = NULL WHERE id = 1`);
-  //     setStatus('guest');
-  //     setLocalUserId(GUEST_ID);
-  //     return;
-  //   }
+  async function waitForRemoteUser(userId: string, attempts = 3) {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 5000));
 
-  //   const cached = rows[0];
-  //   const { data, error } = await supabase.auth.setSession({
-  //     access_token: cached.access_token,
-  //     refresh_token: cached.refresh_token,
-  //   });
+      const { data, error } = await supabase
+        .schema('pomidori_clock')
+        .from('User')
+        .select('id, username, email, created_at')
+        .eq('id', userId)
+        .maybeSingle();
 
-  //   if (error || !data.session) {
-  //     setStatus('guest');
-  //     setLocalUserId(GUEST_ID);
-  //     return;
-  //   }
+      if (!error && data) {
+        console.log("waitForRemoteUser: User created")
+        return data;
+      }
+    }
 
-  //   const newUser: LocalUser = {
-  //     id: data.session.user.id,
-  //     email: data.session.user.email ?? null,
-  //     username: data.session.user.user_metadata?.username ?? null,
-  //     is_guest: 0,
-  //     access_token: data.session.access_token,
-  //     refresh_token: data.session.refresh_token,
-  //     created_at: data.session.user.created_at,
-  //   }
-  //   setUser(newUser);
-  //   setLocalUserId(newUser.id);
-  //   setStatus('authenticated');
-  // }
+    throw new Error('The user was created in Auth, but no matching row was found in the remote User table yet.');
+  }
 
-  // async function signIn(user: LocalUser) {
-  //   if (!db) { return; }
+  async function signInOnline(user: LocalUser) {
+    if (!db) { return; }
 
-  //   try {
-  //     if (!user.email) {
-  //       throw new Error('User email not available for sign in.');
-  //     }
+    try {
+      if (!user.email) {
+        throw new Error('User email not available for sign in.');
+      }
 
-  //     const { error } = await supabase.auth.signInWithPassword({
-  //       email: user.email,
-  //       password: 'temporary-password',
-  //     })
+      const { error } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: 'temporary-password',
+      })
 
-  //     if (error) {
-  //       throw error;
-  //     }
+      if (error) {
+        throw error;
+      }
 
-  //     setStatus('authenticated');
-  //     setLocalUserId(user.id);
-  //     setUser(user);
-  //   } catch (err) {
-  //     console.error('Sign in error:', err);
-  //   }
-  // }
+      setStatus('authenticated');
+      setLocalUserId(user.id);
+      setUser(user);
+    } catch (err) {
+      console.error('Sign in error:', err);
+    }
+  }
+
+  async function signInOffline(user: LocalUser) {
+    if (!db) { return; }
+
+    try {
+      if (!user.email) {
+        throw new Error('User email not available for sign in.');
+      }
+
+      const users: LocalUser[] = await fetchUsers() ?? [];
+      const localUser = users.find((u) => user.email === u.email);
+
+      if (!localUser) {
+        throw new Error('User not found locally.');
+      }
+
+      setStatus('pending');
+      setLocalUserId(user.id);
+      setUser(user);
+    } catch (err) {
+      console.error('Sign in error:', err);
+    }
+  }
 
   // async function signUpOnline(email: string, username: string, password: string = 'temporary-password') {
   //   if (!db) { return; }
