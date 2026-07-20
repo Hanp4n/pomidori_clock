@@ -119,77 +119,51 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  // async function signUpOnline(email: string, username: string, password: string = 'temporary-password') {
-  //   if (!db) { return; }
-  //   try {
+  async function signUpOnline(email: string, username: string, password: string = 'temporary-password') {
+    if (!db) { return; }
+    try {
 
-  //     // console.log("handleCreateInSupabaseAndSync: creating user in supabase");
-  //     const { data: authData, error: authError } = await supabase.auth.signUp({
-  //       email: email.trim(),
-  //       password: password,
-  //       options: {
-  //         data: {
-  //           username: username.trim(),
-  //         },
-  //       },
-  //     });
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: {
+            username,
+          },
+        },
+      });
 
-  //     // console.log("handleCreateInSupabaseAndSync: the user was created in supabase");
+      // console.log("handleCreateInSupabaseAndSync: the user was created in supabase");
 
-  //     if (authError) throw authError;
-  //     if (!authData.user) throw new Error('Supabase Auth did not return a user.');
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('Supabase Auth did not return a user.');
 
-  //     const accessToken = authData.session?.access_token ?? null;
-  //     const refreshToken = authData.session?.refresh_token ?? null;
-  //     const data = await waitForRemoteUser(authData.user.id);
+      const access_token = authData.session?.access_token ?? null;
+      const refresh_token = authData.session?.refresh_token ?? null;
+      const data = await waitForRemoteUser(authData.user.id);
 
-  //     // console.log("User: ", JSON.stringify(data));
-  //     // console.log("handleCreateInSupabaseAndSync: creating user in SQLite");
+      // console.log("User: ", JSON.stringify(data));
+      // console.log("handleCreateInSupabaseAndSync: creating user in SQLite");
 
-  //     await db.execute(
-  //       'INSERT INTO "User" (id, username, email, is_guest, access_token, refresh_token, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-  //       [data.id, data.username, data.email, 0, accessToken, refreshToken, data.created_at]
-  //     );
+      const newLocalUser: LocalUser = {
+        id: data.id,
+        username: data.username,
+        email: data.email,
+        is_guest: 0,
+        access_token,
+        refresh_token,
+        created_at: data.created_at
+      }
+      const insertOperation = createUser(newLocalUser);
+      const { sql, values } = insertOperation;
 
-  //     // console.log("handleCreateInSupabaseAndSync: the user was created in SQLite");
-
-  //     const updatedUsers = (await db.select('SELECT * FROM "User" ORDER BY created_at DESC')) as LocalUser[];
-
-  //   } catch (err) {
-  //     console.error('Sync user error:', err);
-  //   }
-  // }
-
-  //   async function waitForRemoteUser(userId: string, attempts = 3) {
-  //     for (let attempt = 0; attempt < attempts; attempt += 1) {
-  //       await new Promise((resolve) => window.setTimeout(resolve, 5000));
-
-  //       const { data, error } = await supabase
-  //         .schema('pomidori_clock')
-  //         .from('User')
-  //         .select('id, username, email, created_at')
-  //         .eq('id', userId)
-  //         .maybeSingle();
-
-  //       if (!error && data) {
-  //         console.log("waitForRemoteUser: User created")
-  //         return data;
-  //       }
-  //     }
-
-  //     throw new Error('The user was created in Auth, but no matching row was found in the remote User table yet.');
-  //   }
-
-  //   useEffect(() => {
-  //     const updateUserList = async () => {
-  //       const newUsers = await fetchUsers();
-  //       if (newUsers) {
-  //         setUsers(newUsers)
-  //       }
-  //     }
-  //     updateUserList();
-  //   }, []);
-
+      await db.execute(
+        sql, values
+      );
+    } catch (err) {
+      console.error('Sync user error:', err);
+    }
+  }
 
     useEffect(() => {
 
