@@ -1,7 +1,12 @@
 import type { LocalUser } from "@/db/db-types";
 import { createContext } from "react";
-
-export type AuthStatus = 'loading' | 'guest' | 'authenticated';
+/**
+ * loading: the authentication process is going through
+ * guest: the user is enabled to offline-only operations
+ * authenticated: the user is fully able to use the app
+ * pending: the user (previously registered in the local database) was signed in locally, waiting for internet connection to be fully authenticated
+ */
+export type AuthStatus = 'loading' | 'guest' | 'authenticated' | 'pending';
 
 export interface AuthContextValue {
   user: LocalUser | null;
@@ -13,6 +18,10 @@ export interface AuthContextValue {
 
   signInAsGuest: () => void;
   signOut: () => Promise<void>;
+  signUpOnline: (email: string, username: string, password?: string) => Promise<void>;
+  signInOnline: (user: LocalUser)=> Promise<void>;
+  fetchUsers: ()=> Promise<LocalUser[] | undefined>;
+  fetchSignedUser: (email: string)=>Promise<LocalUser | undefined>
   // refreshSession: () => Promise<void>;
 }
 
