@@ -165,64 +165,64 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-    useEffect(() => {
+  useEffect(() => {
 
-      const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
-        if (!db) { return; }
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!db) { return; }
 
-        if (session) {
-          const newUser: LocalUser = {
-            id: session.user.id,
-            email: session.user.email ?? null,
-            username: session.user.user_metadata?.username ?? null,
-            is_guest: 0,
-            access_token: session.access_token,
-            refresh_token: session.refresh_token,
-            created_at: session.user.created_at,
-          };
-
-        await db.execute(
-            `UPDATE "User" SET access_token = $1, refresh_token = $2 WHERE id = $3`,
-            [newUser.access_token, newUser.refresh_token, newUser.id]
-          );
+      if (session) {
+        const newUser: LocalUser = {
+          id: session.user.id,
+          email: session.user.email ?? null,
+          username: session.user.user_metadata?.username ?? null,
+          is_guest: 0,
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+          created_at: session.user.created_at,
+        };
 
         await db.execute(
-            `UPDATE "AppState" SET active_user_id = $1 WHERE id = 1`,
-            [session.user.id]
-          );
+          `UPDATE "User" SET access_token = $1, refresh_token = $2 WHERE id = $3`,
+          [newUser.access_token, newUser.refresh_token, newUser.id]
+        );
 
-          setUser(newUser);
-          setLocalUserId(newUser.id);
-          setStatus('authenticated');
-        }
-      });
-      return () => sub.subscription.unsubscribe();
+        await db.execute(
+          `UPDATE "AppState" SET active_user_id = $1 WHERE id = 1`,
+          [session.user.id]
+        );
 
-    }, []);
+        setUser(newUser);
+        setLocalUserId(newUser.id);
+        setStatus('authenticated');
+      }
+    });
+    return () => sub.subscription.unsubscribe();
 
-    const value: AuthContextValue = {
-      user,
-      setUser,
+  }, []);
+
+  const value: AuthContextValue = {
+    user,
+    setUser,
     fetchUsers,
     fetchSignedUser,
-      status,
-      setStatus,
-      localUserId,
-      setLocalUserId,
+    status,
+    setStatus,
+    localUserId,
+    setLocalUserId,
     signUpOnline,
     signInOnline,
-      signInAsGuest: () => { setStatus('guest'); setLocalUserId(GUEST_ID); },
-      signOut: async () => {
-        await supabase.auth.signOut();
-        const db = await getDb();
-        await db.execute(`UPDATE "AppState" SET active_user_id = NULL WHERE id = 1`);
-        setStatus('guest');
-        setLocalUserId(GUEST_ID);
-      },
-      // refreshSession: bootstrap,
-    };
-
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    signInAsGuest: () => { setStatus('guest'); setLocalUserId(GUEST_ID); },
+    signOut: async () => {
+      await supabase.auth.signOut();
+      const db = await getDb();
+      await db.execute(`UPDATE "AppState" SET active_user_id = NULL WHERE id = 1`);
+      setStatus('guest');
+      setLocalUserId(GUEST_ID);
+    },
+    // refreshSession: bootstrap,
   };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
 
 export default AuthProvider
