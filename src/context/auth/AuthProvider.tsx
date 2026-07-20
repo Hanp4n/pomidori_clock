@@ -170,8 +170,6 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
         if (!db) { return; }
 
-        const conn = await db;
-
         if (session) {
           const newUser: LocalUser = {
             id: session.user.id,
@@ -183,12 +181,12 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             created_at: session.user.created_at,
           };
 
-          await conn.execute(
+        await db.execute(
             `UPDATE "User" SET access_token = $1, refresh_token = $2 WHERE id = $3`,
             [newUser.access_token, newUser.refresh_token, newUser.id]
           );
 
-          await conn.execute(
+        await db.execute(
             `UPDATE "AppState" SET active_user_id = $1 WHERE id = 1`,
             [session.user.id]
           );
@@ -205,10 +203,14 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const value: AuthContextValue = {
       user,
       setUser,
+    fetchUsers,
+    fetchSignedUser,
       status,
       setStatus,
       localUserId,
       setLocalUserId,
+    signUpOnline,
+    signInOnline,
       signInAsGuest: () => { setStatus('guest'); setLocalUserId(GUEST_ID); },
       signOut: async () => {
         await supabase.auth.signOut();
