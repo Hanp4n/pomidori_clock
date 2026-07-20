@@ -5,6 +5,7 @@ import { getDb } from '@/db/db';
 import type { AuthContextValue, AuthStatus } from './AuthContext';
 import { AuthContext } from './AuthContext';
 import { useDb } from '../db/DbHook';
+import { createUser } from '@/db/local-agnostic-operations';
 
 
 const GUEST_ID = '00000000-0000-0000-0000-000000000000';
@@ -13,13 +14,13 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<LocalUser | null>(null);
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [localUserId, setLocalUserId] = useState(GUEST_ID);
-  const [users, setUsers] = useState<LocalUser[]>([])
+  // const [users, setUsers] = useState<LocalUser[]>([])
   const db = useDb();
 
-  // async function fetchUsers() {
-  //   if (!db) { return; }
-  //   return await db.select('SELECT id, username, email, is_guest , access_token , refresh_token, created_at FROM "User" ORDER BY created_at DESC') as LocalUser[];
-  // }
+  async function fetchUsers() {
+    if (!db) { return; }
+    return await db.select('SELECT id, username, email, is_guest , access_token , refresh_token, created_at FROM "User" ORDER BY created_at DESC') as LocalUser[];
+  }
 
   // async function bootstrap() {
   //   if (!db) { return; }
