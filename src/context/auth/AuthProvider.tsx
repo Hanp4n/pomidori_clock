@@ -24,7 +24,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   async function fetchSignedUser (email: string) {
     if (!db) return;
-    const existing = (await db.select('SELECT id, username, email, is_guest, access_token, refresh_token, created_at FROM "User" WHERE email = $1 LIMIT 1', [signInEmail.trim()])) as LocalUser[];
+    const existing = (await db.select('SELECT id, username, email, is_guest, access_token, refresh_token, created_at FROM "User" WHERE email = $1 LIMIT 1', [email.trim()])) as LocalUser[];
 
     let user: LocalUser = existing[0];
 
