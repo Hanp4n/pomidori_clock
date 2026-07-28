@@ -1,81 +1,61 @@
-import { IconUser } from '@tabler/icons-react'
-import loginImage from './assets/img/pomofocus_login_img.png'
+// import { IconUser } from '@tabler/icons-react'
+// import loginImage from './assets/img/pomofocus_login_img.png'
+// import { useEffect } from 'react'
 
-type Props = {}
+const Login = () => {
 
-const Login = (props: Props) => {
   return (
-    <main className="min-h-screen bg-slate-50 lg:grid lg:grid-cols-[62%_38%]">
-      <aside className="hidden lg:block relative h-screen overflow-hidden">
-        <img
-          src={loginImage}
-          alt="Pomidori Clock login visual"
-          className="h-full w-full object-cover"
-        />
-      </aside>
-
-      <section className="relative flex min-h-screen items-center justify-center bg-white px-6 py-10 lg:px-12 lg:py-0">
-        <div className="relative w-full max-w-md">
-          <div className="space-y-8 py-10 text-center sm:py-16">
-            <h1 className="text-3xl font-medium tracking-tight text-slate-950">Pomidori Clock</h1>
-            <p className="mx-auto max-w-sm text-sm text-slate-500">
-              Sign in to access your productivity timer, or register a new account to begin tracking sessions.
-            </p>
+    <div data-name="Login - Online" className="flex overflow-hidden py-0 pr-127 pl-0 w-360 h-256 bg-white">
+      <div data-name="pomofocus 2 1" className="w-233 h-[1459.2783203125px]" />
+      <div data-name="Frame 1" className="flex overflow-hidden py-[35px] px-[10px] flex-col justify-center items-center gap-[10px] w-127 h-256">
+        <div data-name="Group 1" className="w-96 h-[266px]">
+          <p data-name="Pomidori Clock" className="w-[169px] h-16 text-2xl text-black">
+            Pomidori Clock
+          </p>
+          <div data-name="Frame 1" className="flex flex-col gap-[10px] h-48">
+            <div data-name="email" className="flex flex-col gap-[6px] h-[66px]">
+              <p data-name="Email" className="w-9 h-5 text-sm font-medium text-slate-900">Email</p>
+              <div data-name="input/with button" className="flex gap-2 w-96">
+                <div data-name="default" className="flex flex-col gap-[6px] w-96 h-10 grow">
+                  <div data-name="field" className="flex py-2 pr-14 pl-3 items-center w-96 bg-white border-t border-r border-b border-l border-slate-300 border-solid rounded-[6px]">
+                    <p data-name="Email" className="w-[41px] h-6 text-base text-slate-400">Email</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div data-name="password" className="flex flex-col gap-[6px] h-[66px]">
+              <p data-name="password" className="w-[66px] h-5 text-sm font-medium text-slate-900">Password</p>
+              <div data-name="input/with button" className="flex gap-2 w-96">
+                <div data-name="default" className="flex flex-col gap-[6px] w-96 h-10 grow">
+                  <div data-name="field" className="flex py-2 pr-14 pl-3 items-center w-96 bg-white border-t border-r border-b border-l border-slate-300 border-solid rounded-[6px]">
+                    <p data-name="Email" className="w-[74px] h-6 text-base text-slate-400">Password</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div data-name="Frame 2" className="flex overflow-hidden justify-end gap-[10px] w-96">
+              <div data-name="button" className="flex py-2 px-4 justify-center items-center gap-[10px] w-22 bg-white border-t border-r border-b border-l border-slate-200 border-solid rounded-[6px]">
+                <p data-name="Cancel" className="w-14 h-6 text-sm font-medium text-slate-900">Register</p>
+              </div>
+              <div data-name="button" className="flex py-2 px-4 justify-center items-center gap-[10px] w-[93px] bg-slate-900 rounded-[6px]">
+                <p data-name="Continue" className="w-[61px] h-6 text-sm font-medium text-white">Continue</p>
+              </div>
+            </div>
           </div>
-
-          <form className="space-y-6 rounded-3xl border border-slate-200 bg-slate-50 p-8 shadow-sm shadow-slate-200/60">
-            <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm font-medium text-slate-600">
-                Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="Email"
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/10"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-medium text-slate-600">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Password"
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/10"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                type="button"
-                className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
-              >
-                Register
-              </button>
-              <button
-                type="submit"
-                className="rounded-2xl bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                Continue
-              </button>
-            </div>
-          </form>
-
-          <button
-            type="button"
-            className="absolute bottom-8 right-8 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-xl shadow-slate-950/15 transition hover:bg-slate-800 sm:bottom-10 sm:right-10"
-          >
-            <IconUser size={18} />
-            Continue as a guest
-          </button>
         </div>
-      </section>
-    </main>
+        <div data-name="button" className="flex py-2 px-4 justify-center items-center gap-[10px] w-[191px] bg-slate-900 rounded-[6px]">
+          <div data-name="Vector" className="w-[15px] h-[13.500495910644531px] border-[1.5px] border-white border-solid" />
+          <p data-name="Continue" className="w-[134px] h-6 text-sm font-medium text-white">Continue as a guest</p>
+        </div>
+        <div data-name="button" className="flex py-2 px-4 justify-center items-center gap-[10px] w-[162px] bg-slate-900 rounded-[6px]">
+          <div data-name="icon/user" className="overflow-hidden w-5 h-5">
+            <div data-name="Vector" className="w-[11.666666666666668px] h-[5px] border-[1.6666666269302368px] border-white border-solid" />
+            <div data-name="Vector" className="w-[6.666666666666667px] h-[6.666666666666667px] border-[1.6666666269302368px] border-white border-solid" />
+          </div>
+          <p data-name="Select account" className="w-25 h-6 text-sm font-medium text-white">Select account</p>
+        </div>
+      </div>
+    </div>
   )
 }
 
