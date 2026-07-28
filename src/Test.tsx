@@ -88,6 +88,7 @@ const Test: React.FC = () => {
       setState((prev) => ({ ...prev, loading: true, error: null }));
 
       const updatedUsers = await fetchUsers() ?? [];
+      console.log("User fetched locally: ", updatedUsers)
 
       setState((prev) => ({
         ...prev,
@@ -125,8 +126,10 @@ const Test: React.FC = () => {
     try {
       setState((prev) => ({ ...prev, loading: true, error: null }));
 
-      signUpOnline(form.email.trim(), form.username.trim())
-      handleRefreshUsers();
+      await signUpOnline(form.email.trim(), form.username.trim());
+      // console.log("User signed up")
+      await handleRefreshUsers();
+      // console.log("Users list refreshed")
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       setState((prev) => ({
