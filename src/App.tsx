@@ -1,7 +1,9 @@
 import AppProviders from './context/AppProviders'
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Test from './Test'
 import Test2 from './Test2'
+import Login from './pages/auth/Login'
+import Register from './pages/auth/Register'
 
 function App() {
 
@@ -9,12 +11,11 @@ function App() {
     <AppProviders>
       <HashRouter>
         <Routes>
-          <Route>
-            <Route path="/" element={<Test />} />
-          </Route>
-          <Route>
-            <Route index path="/task" element={<Test2 />} />
-          </Route>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/task" element={<Test2 />} />
+          <Route path="/test" element={<Test />} />
         </Routes>
       </HashRouter>
     </AppProviders>
