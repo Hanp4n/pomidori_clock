@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { ArrowLeft, Check, ChevronDown, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth/AuthHook'
 import type Database from '@tauri-apps/plugin-sql'
@@ -17,7 +17,6 @@ import type { LocalTask } from './db/schema.sqlite'
 import { useDb } from './context/db/DbHook'
 import { useSync } from './context/sync/SyncHook'
 import { getOperation } from './db/local-agnostic-operations'
-import { supabase } from './db/supabase'
 import { notifyLocalChange } from './db/sync/sync-bus'
 
 
@@ -202,6 +201,7 @@ const Test2 = () => {
   }
 
   const handleExit = () => {
+
     navigate('/');
   }
 
