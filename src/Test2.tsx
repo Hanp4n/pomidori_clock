@@ -21,7 +21,7 @@ import { notifyLocalChange } from './context/sync/sync-bus'
 
 
 const Test2 = () => {
-  const { user, localUserId, signOut, status: authStatus } = useAuth();
+  const { user, localUserId, signOut, status: authStatus, exit } = useAuth();
   const { sync, remoteChanges, setRemoteChanges, notifyRemoteChange } = useSync();
   const [tasks, setTasks] = useState<LocalTask[]>([])
   const db = useDb();
@@ -201,6 +201,11 @@ const Test2 = () => {
   }
 
   const handleExit = async () => {
+    await exit();
+    navigate('/', {replace:true});
+  }
+
+  const handleLogOut = async () => {
     await signOut();
     navigate('/', {replace:true});
   }
@@ -245,6 +250,10 @@ const Test2 = () => {
             <Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-6 py-2" onClick={handleExit}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Exit
+            </Button>
+            <Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-6 py-2" onClick={handleLogOut}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Log out
             </Button>
           </div>
           <div>

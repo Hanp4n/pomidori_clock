@@ -5,7 +5,7 @@ import { getDb } from '@/db/db';
 import type { AuthContextValue, AuthStatus } from './AuthContext';
 import { AuthContext } from './AuthContext';
 import { useDb } from '../db/DbHook';
-import { createUser } from '@/db/local-agnostic-operations';
+import { createUser, deleteUser } from '@/db/local-agnostic-operations';
 import { AuthApiError, AuthRetryableFetchError, AuthSessionMissingError } from '@supabase/supabase-js';
 import { saveSession, getSession, clearSession, getSessionKey } from './session-keychain';
 import { ReconnectDialog } from '@/components/auth/ReconnectDialog';
@@ -73,6 +73,8 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     throw new Error('The user was created in Auth, but no matching row was found in the remote User table yet.');
   }
 
+  
+
   async function signInOnline(user: LocalUser, password: string) {
     if (!db) { return; }
 
@@ -130,6 +132,30 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('Offline sign in error:', err);
       throw new Error(message);
     }
+  }
+
+  async function signOut() {
+    if(!user || !db) return;
+    try {
+      await supabase.auth.signOut();
+
+      const deleteOperation = deleteUser(user);
+      console.log(deleteOperation)
+      const {sql, values} = deleteOperation;
+      await db.execute(sql, values);
+
+      await exit();
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
+  }
+
+  async function exit() {
+    const db = await getDb();
+    await db.execute(`UPDATE "AppState" SET active_user_id = NULL WHERE id = 1`);
+    setUser(null);
+    setStatus('loading');
+    setLocalUserId('');
   }
 
   async function signUpOnline(email: string, username: string, password: string = 'temporary-password') {
@@ -200,10 +226,10 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   async function refreshSession(userAuth: LocalUser | null = user) {
-    if(!userAuth) return;
+    if (!userAuth) return;
     try {
       const session = await getSession(getSessionKey(userAuth));
-      console.log("internet regained, restoring session with:", session)
+      // console.log("restoring session with:", session)
 
       if (!session || !session.refresh_token) {
         setNeedsReauth(true);
@@ -296,17 +322,8 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     reconnectOnlineSession,
     refreshSession,
     signInAsGuest: () => { setStatus('guest'); setLocalUserId(GUEST_ID); },
-    signOut: async () => {
-      // Do NOT call supabase.auth.signOut(): it revokes the refresh token
-      // server-side, which would leave the keychain holding a dead token.
-      // Instead, clear only the local client state so the keychain session
-      // stays valid for offline-to-online reconnects.
-      const db = await getDb();
-      await db.execute(`UPDATE "AppState" SET active_user_id = NULL WHERE id = 1`);
-      setUser(null);
-      setStatus('loading');
-      setLocalUserId('');
-    },
+    exit,
+    signOut
   };
 
   return <AuthContext.Provider value={value}>
