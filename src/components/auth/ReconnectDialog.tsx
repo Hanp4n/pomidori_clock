@@ -29,6 +29,7 @@ export function ReconnectDialog({ open, email, onSubmit, onClose }: ReconnectDia
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed.')
+    } finally {
       setLoading(false)
     }
   }
@@ -54,7 +55,7 @@ export function ReconnectDialog({ open, email, onSubmit, onClose }: ReconnectDia
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+              onKeyDown={async(e) => e.key === 'Enter' && await handleSubmit()}
               autoFocus
             />
           </div>
