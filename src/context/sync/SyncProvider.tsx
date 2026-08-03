@@ -10,16 +10,18 @@ import { supabase } from '@/db/supabase';
 import { AuthApiError, AuthRetryableFetchError, AuthSessionMissingError } from '@supabase/supabase-js';
 import { SyncContext, type RemoteChanges, type SyncStatus } from './SyncContext';
 import type { LocalAppState, LocalUser } from '@/db/schema.sqlite';
+import { getSession, getSessionKey, clearSession } from '../auth/session-keychain';
+import { ReconnectDialog } from '@/components/auth/ReconnectDialog';
 
 const ALL_TABLES = ['Task', 'Category', 'TaskCategory', 'PomodoroConfig', 'PomodoroSession'];
 
-
 export function SyncProvider({ children }: { children: React.ReactNode }) {
   const isOnline = useIsOnline();
-  const { status: authStatus, localUserId, user, setUser, setLocalUserId } = useAuth();
+  const { status: authStatus, localUserId, user, setUser, setLocalUserId, signInOnline } = useAuth();
   const [status, setStatus] = useState<SyncStatus>('idle');
   const [remoteChanges, setRemoteChanges] = useState<RemoteChanges[]>([] as RemoteChanges[]);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const [needsReauth, setNeedsReauth] = useState(false);
   const db = useDb();
 
   const pushTables = useCallback(async (tables: string[] = ALL_TABLES) => {
@@ -274,6 +276,12 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   return (
     <SyncContext.Provider value={{ status, lastSyncedAt, sync, remoteChanges, setRemoteChanges, notifyRemoteChange }}>
       {children}
+      <ReconnectDialog
+        open={needsReauth}
+        email={user?.email ?? ''}
+        onSubmit={handleReauth}
+        onClose={() => setNeedsReauth(false)}
+      />
     </SyncContext.Provider>
   );
 }
