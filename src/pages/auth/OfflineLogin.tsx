@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { useAuth } from '@/context/auth/AuthHook'
 import type { LocalUser } from '@/db/db-types'
 import loginImage from '@/assets/img/pomofocus_login_img.png'
@@ -13,7 +12,6 @@ const OfflineLogin = () => {
 
   const [localUsers, setLocalUsers] = useState<LocalUser[]>([])
   const [selectedUser, setSelectedUser] = useState<LocalUser | null>(null)
-  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const isOnline = useIsOnline();
@@ -42,14 +40,10 @@ const OfflineLogin = () => {
 
   const handleSignIn = async () => {
     if (!selectedUser || !selectedUser.email) return
-    if (!password.trim()) {
-      setError('Enter your password.')
-      return
-    }
     setLoading(true)
     setError(null)
     try {
-      await signInOffline(selectedUser.email, password)
+      await signInOffline(selectedUser.email)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed.')
       setLoading(false)
@@ -58,7 +52,6 @@ const OfflineLogin = () => {
 
   const handleSelectUser = (u: LocalUser) => {
     setSelectedUser(u)
-    setPassword('')
     setError(null)
   }
   
@@ -96,16 +89,6 @@ const OfflineLogin = () => {
               <div className="rounded-lg border bg-card p-4">
                 <p className="font-medium">{selectedUser.username || 'User'}</p>
                 <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
-              </div>
-              <div className="space-y-2">
-                <Input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSignIn()}
-                  autoFocus
-                />
               </div>
               <div className="flex gap-3">
                 <Button

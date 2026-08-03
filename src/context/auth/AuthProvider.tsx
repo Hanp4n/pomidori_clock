@@ -111,7 +111,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  async function signInOffline(email: string, _password: string) {
+  async function signInOffline(email: string) {
     if (!db) { return; }
 
     try {
@@ -199,10 +199,10 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setNeedsReauth(false);
   };
 
-  async function refreshSession() {
-    if(!user) return;
+  async function refreshSession(userAuth: LocalUser | null = user) {
+    if(!userAuth) return;
     try {
-      const session = await getSession(getSessionKey(user));
+      const session = await getSession(getSessionKey(userAuth));
       console.log("internet regained, restoring session with:", session)
 
       if (!session || !session.refresh_token) {
@@ -224,7 +224,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           error instanceof AuthSessionMissingError;
         if (isTokenInvalid) {
           console.error('Stored session is no longer valid:', error);
-          await clearSession(getSessionKey(user));
+          await clearSession(getSessionKey(userAuth));
           setNeedsReauth(true);
         } else if (error instanceof AuthRetryableFetchError) {
           console.error('Transient failure restoring session, will retry on next reconnect:', error);
@@ -236,7 +236,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (err) {
       console.error('Restoring session threw unexpectedly:', err);
       try {
-        await clearSession(getSessionKey(user));
+        await clearSession(getSessionKey(userAuth));
       } catch {
         // Ignore keychain cleanup failures; the reauth dialog must still open.
       }
