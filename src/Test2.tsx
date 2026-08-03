@@ -17,7 +17,7 @@ import type { LocalTask } from './db/schema.sqlite'
 import { useDb } from './context/db/DbHook'
 import { useSync } from './context/sync/SyncHook'
 import { getOperation } from './db/local-agnostic-operations'
-import { notifyLocalChange } from './db/sync/sync-bus'
+import { notifyLocalChange } from './context/sync/sync-bus'
 
 
 const Test2 = () => {

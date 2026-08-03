@@ -1,6 +1,6 @@
 import { getDb } from "@/db/db";
-import { supabase } from "../supabase";
-import { getOperation } from "../local-agnostic-operations";
+import { supabase } from "../../db/supabase";
+import { getOperation } from "../../db/local-agnostic-operations";
 
 const db = getDb();
 

@@ -1,10 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useIsOnline } from '../connectivity/ConnectivityHook';
 import { useAuth } from '../auth/AuthHook';
-import { downloadOnlineRegistries, mergeAndUploadRegistries, mergeOnlineWithLocal, reconcileDeletions } from '@/db/sync/sync-data';
+import { downloadOnlineRegistries, mergeAndUploadRegistries, mergeOnlineWithLocal, reconcileDeletions } from '@/context/sync/sync-data';
 import { useDb } from '../db/DbHook';
-import { getMapper } from '@/db/sync/sync-mappers';
-import { notifyLocalChange, onLocalChange } from '@/db/sync/sync-bus';
+import { getMapper } from '@/context/sync/sync-mappers';
+import { notifyLocalChange, onLocalChange } from '@/context/sync/sync-bus';
 import { getOperation } from '@/db/local-agnostic-operations';
 import { supabase } from '@/db/supabase';
 import { SyncContext, type RemoteChanges, type SyncStatus } from './SyncContext';
