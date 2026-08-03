@@ -21,10 +21,10 @@ import { notifyLocalChange } from './db/sync/sync-bus'
 
 
 const Test2 = () => {
-  const { user, localUserId } = useAuth();
+  const { user, localUserId, signOut, status: authStatus } = useAuth();
   const { sync, remoteChanges, setRemoteChanges, notifyRemoteChange } = useSync();
   const [tasks, setTasks] = useState<LocalTask[]>([])
-  const [db] = useState<Database | null>(useDb());
+  const db = useDb();
   const [categories, setCategories] = useState([
     { id: '1', title: 'ALG', color: '#E5E7EB' },
     { id: '2', title: 'CAL', color: '#E5E7EB' },
@@ -200,22 +200,23 @@ const Test2 = () => {
     )
   }
 
-  const handleExit = () => {
-
-    navigate('/');
+  const handleExit = async () => {
+    await signOut();
+    navigate('/', {replace:true});
   }
 
-
   useEffect(() => {
+    if(authStatus === 'loading')return;
+    if (!db || !user) {
+      throw Error("Error fetching tasks");
+    }
     const fetchTasks = async () => {
       const actualTasks: LocalTask[] = await handleRetrieveTasks() || [];
       // console.log('Fetched tasks:', actualTasks);
       setTasks(actualTasks.filter(task => task.deleted_at === null));
     }
-    if (db) {
-      fetchTasks();
-    }
-  }, [db]);
+    fetchTasks();
+  }, [db, user]);
 
   useEffect(() => {
     const taskRemoteChanges = remoteChanges.find(remoteChange => remoteChange.table === "Task") ?? null;
@@ -234,8 +235,6 @@ const Test2 = () => {
       }
     }
   }, [remoteChanges])
-
-
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
