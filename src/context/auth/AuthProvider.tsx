@@ -5,7 +5,7 @@ import { getDb } from '@/db/db';
 import type { AuthContextValue, AuthStatus } from './AuthContext';
 import { AuthContext } from './AuthContext';
 import { useDb } from '../db/DbHook';
-import { createUser, deleteUser } from '@/db/local-agnostic-operations';
+import { createUser } from '@/db/local-agnostic-operations';
 import { AuthApiError, AuthRetryableFetchError, AuthSessionMissingError } from '@supabase/supabase-js';
 import { saveSession, getSession, clearSession, getSessionKey } from './session-keychain';
 import { ReconnectDialog } from '@/components/auth/ReconnectDialog';
@@ -83,6 +83,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error('User email not available for sign in.');
       }
 
+      console.log("Signing in with password")
       const { data, error } = await supabase.auth.signInWithPassword({
         email: user.email,
         password,
@@ -138,11 +139,6 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if(!user || !db) return;
     try {
       await supabase.auth.signOut();
-
-      const deleteOperation = deleteUser(user);
-      console.log(deleteOperation)
-      const {sql, values} = deleteOperation;
-      await db.execute(sql, values);
 
       await exit();
     } catch (err) {
@@ -220,6 +216,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   const handleReauth = async (password: string) => {
+    console.log("reauth with user: ",user)
     if (!user) return;
     await signInOnline(user, password);
     setNeedsReauth(false);
@@ -229,7 +226,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!userAuth) return;
     try {
       const session = await getSession(getSessionKey(userAuth));
-      // console.log("restoring session with:", session)
+      console.log("restoring session with:", session)
 
       if (!session || !session.refresh_token) {
         setNeedsReauth(true);
