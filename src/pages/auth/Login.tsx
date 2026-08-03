@@ -16,7 +16,7 @@ import {
 
 const Login = () => {
   const navigate = useNavigate()
-  const { signInAsGuest, fetchSignedUser, signInOnline, fetchUsers, refreshSession } = useAuth()
+  const { signInAsGuest, fetchSignedUser, signInOnline, fetchUsers, refreshSession, setUser, setLocalUserId } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -69,6 +69,8 @@ const Login = () => {
     setError(null)
     setShowUserList(false)
     try {
+      setUser(user);
+      setLocalUserId(user.id);
       await refreshSession(user);
       navigate('/task', { replace: true })
     } catch (err) {
