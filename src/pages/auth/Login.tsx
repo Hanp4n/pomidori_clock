@@ -69,7 +69,7 @@ const Login = () => {
     setError(null)
     setShowUserList(false)
     try {
-      await signInOnline(user)
+      await refreshSession(user);
       navigate('/task', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed.')
