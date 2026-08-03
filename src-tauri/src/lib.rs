@@ -26,6 +26,12 @@ pub fn run() {
             sql: include_str!("../../src/db/migrations/sqlite/pomidori_clock_local_v4.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 5,
+            description: "remove_auth_tokens_from_user",
+            sql: include_str!("../../src/db/migrations/sqlite/pomidori_clock_local_v5.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
     //println!("Running Tauri application with SQL migrations...");
     tauri::Builder::default()
