@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -6,6 +6,13 @@ import { Label } from '@/components/ui/label'
 import { useAuth } from '@/context/auth/AuthHook'
 import type { LocalUser } from '@/db/db-types'
 import loginImage from '@/assets/img/pomofocus_login_img.png'
+import { useIsOnline } from '@/context/connectivity/ConnectivityHook'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -17,6 +24,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const [localUsers, setLocalUsers] = useState<LocalUser[]>([])
   const [showUserList, setShowUserList] = useState(false)
+  const isOnline = useIsOnline();
 
   //Uncomment when log out is enabled
   // useEffect(() => {
@@ -76,6 +84,14 @@ const Login = () => {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    console.log("is online: ", isOnline);
+    if(!isOnline){
+      navigate("/offline", {replace: true});
+    }
+  }, [isOnline, navigate])
+  
 
   return (
     <div className="flex min-h-dvh">
