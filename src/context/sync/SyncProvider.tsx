@@ -7,7 +7,6 @@ import { getMapper } from '@/db/sync/sync-mappers';
 import { notifyLocalChange, onLocalChange } from '@/db/sync/sync-bus';
 import { getOperation } from '@/db/local-agnostic-operations';
 import { supabase } from '@/db/supabase';
-import { AuthApiError, AuthRetryableFetchError, AuthSessionMissingError } from '@supabase/supabase-js';
 import { SyncContext, type RemoteChanges, type SyncStatus } from './SyncContext';
 import type { LocalAppState, LocalUser } from '@/db/schema.sqlite';
 import { getSession, getSessionKey, clearSession } from '../auth/session-keychain';
@@ -17,11 +16,10 @@ const ALL_TABLES = ['Task', 'Category', 'TaskCategory', 'PomodoroConfig', 'Pomod
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
   const isOnline = useIsOnline();
-  const { status: authStatus, localUserId, user, setUser, setLocalUserId, signInOnline } = useAuth();
+  const { status: authStatus, localUserId, user, setUser, setLocalUserId, signInOnline, refreshSession } = useAuth();
   const [status, setStatus] = useState<SyncStatus>('idle');
   const [remoteChanges, setRemoteChanges] = useState<RemoteChanges[]>([] as RemoteChanges[]);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
-  const [needsReauth, setNeedsReauth] = useState(false);
   const db = useDb();
 
   const pushTables = useCallback(async (tables: string[] = ALL_TABLES) => {
@@ -212,76 +210,15 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   }, [isOnline, authStatus, sync]);
 
   // Sign in on Supabase when connectivity is regained while user is pending
-  const restoreInFlight = useRef(false);
   useEffect(() => {
     if (!isOnline || authStatus !== 'pending' || !user) return;
-    if (restoreInFlight.current) return;
-
-    const refreshSession = async () => {
-      restoreInFlight.current = true;
-      try {
-        const session = await getSession(getSessionKey(user));
-        console.log("internet regained, restoring session with:", session)
-
-        if (!session || !session.refresh_token) {
-          setNeedsReauth(true);
-          return;
-        }
-
-        // setSession restores the session and, via the auth state listener in
-        // AuthProvider (SIGNED_IN / TOKEN_REFRESHED), handles persisting the
-        // rotated tokens and flipping authStatus to 'authenticated'.
-        const { error } = await supabase.auth.setSession({
-          access_token: session.access_token,
-          refresh_token: session.refresh_token,
-        });
-
-        if (error) {
-          const isTokenInvalid =
-            error instanceof AuthApiError ||
-            error instanceof AuthSessionMissingError;
-          if (isTokenInvalid) {
-            console.error('Stored session is no longer valid:', error);
-            await clearSession(getSessionKey(user));
-            setNeedsReauth(true);
-          } else if (error instanceof AuthRetryableFetchError) {
-            console.error('Transient failure restoring session, will retry on next reconnect:', error);
-          } else {
-            console.error('Failed to restore session from keychain:', error);
-            setNeedsReauth(true);
-          }
-        }
-      } catch (err) {
-        console.error('Restoring session threw unexpectedly:', err);
-        try {
-          await clearSession(getSessionKey(user));
-        } catch {
-          // Ignore keychain cleanup failures; the reauth dialog must still open.
-        }
-        setNeedsReauth(true);
-      } finally {
-        restoreInFlight.current = false;
-      }
-    }
     refreshSession();
 
   }, [isOnline, authStatus, user]);
 
-  const handleReauth = async (password: string) => {
-    if (!user) return;
-    await signInOnline(user, password);
-    setNeedsReauth(false);
-  };
-
   return (
     <SyncContext.Provider value={{ status, lastSyncedAt, sync, remoteChanges, setRemoteChanges, notifyRemoteChange }}>
       {children}
-      <ReconnectDialog
-        open={needsReauth}
-        email={user?.email ?? ''}
-        onSubmit={handleReauth}
-        onClose={() => setNeedsReauth(false)}
-      />
     </SyncContext.Provider>
   );
 }

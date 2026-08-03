@@ -22,6 +22,7 @@ export interface AuthContextValue {
   signInOnline: (user: LocalUser, password: string) => Promise<void>;
   signInOffline: (email: string, password: string) => Promise<void>;
   reconnectOnlineSession: () => Promise<void>;
+  refreshSession: () => Promise<void>
   fetchUsers: () => Promise<LocalUser[] | undefined>;
   fetchSignedUser: (email: string) => Promise<LocalUser | undefined>
 }
