@@ -53,9 +53,6 @@ const buildHardDeleteOperation = (
   values: [idValue],
 });
 
-// Normally is just soft delete
-const buildDeleteOperation = buildSoftDeleteOperation;
-
 export const createTask = (task: Record<string, unknown>): SqlOperation =>
   buildInsertOperation('Task', task);
 
@@ -63,7 +60,7 @@ export const updateTask = (task: Record<string, unknown>): SqlOperation =>
   buildUpdateOperation('Task', task);
 
 export const deleteTask = (task: Record<string, unknown>): SqlOperation =>
-  buildDeleteOperation('Task', task.id);
+  buildSoftDeleteOperation('Task', task.id);
 
 export const createCategory = (category: Record<string, unknown>): SqlOperation =>
   buildInsertOperation('Category', category);
@@ -72,7 +69,7 @@ export const updateCategory = (category: Record<string, unknown>): SqlOperation 
   buildUpdateOperation('Category', category);
 
 export const deleteCategory = (category: Record<string, unknown>): SqlOperation =>
-  buildDeleteOperation('Category', category.id);
+  buildSoftDeleteOperation('Category', category.id);
 
 export const createTaskCategory = (taskCategory: Record<string, unknown>): SqlOperation =>
   buildInsertOperation('TaskCategory', taskCategory);
@@ -81,7 +78,7 @@ export const updateTaskCategory = (taskCategory: Record<string, unknown>): SqlOp
   buildUpdateOperation('TaskCategory', taskCategory);
 
 export const deleteTaskCategory = (taskCategory: Record<string, unknown>): SqlOperation =>
-  buildDeleteOperation('TaskCategory', taskCategory.id);
+  buildSoftDeleteOperation('TaskCategory', taskCategory.id);
 
 export const createPomodoroConfig = (config: Record<string, unknown>): SqlOperation =>
   buildInsertOperation('PomodoroConfig', config);
@@ -90,7 +87,7 @@ export const updatePomodoroConfig = (config: Record<string, unknown>): SqlOperat
   buildUpdateOperation('PomodoroConfig', config);
 
 export const deletePomodoroConfig = (config: Record<string, unknown>): SqlOperation =>
-  buildDeleteOperation('PomodoroConfig', config.id);
+  buildSoftDeleteOperation('PomodoroConfig', config.id);
 
 export const createPomodoroSession = (session: Record<string, unknown>): SqlOperation =>
   buildInsertOperation('PomodoroSession', session);
@@ -99,7 +96,7 @@ export const updatePomodoroSession = (session: Record<string, unknown>): SqlOper
   buildUpdateOperation('PomodoroSession', session);
 
 export const deletePomodoroSession = (session: Record<string, unknown>): SqlOperation =>
-  buildDeleteOperation('PomodoroSession', session.id);
+  buildSoftDeleteOperation('PomodoroSession', session.id);
 
 export const createAppState = (session: Record<string, unknown>): SqlOperation =>
   buildInsertOperation('AppState', session);
@@ -108,7 +105,7 @@ export const updateAppState = (session: Record<string, unknown>): SqlOperation =
   buildUpdateOperation('AppState', session);
 
 export const deleteAppState = (session: Record<string, unknown>): SqlOperation =>
-  buildDeleteOperation('AppState', session.id);
+  buildSoftDeleteOperation('AppState', session.id);
 
 export const createUser = (user: Record<string, unknown>): SqlOperation =>
   buildInsertOperation('User', user);
