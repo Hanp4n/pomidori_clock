@@ -9,7 +9,9 @@ import { createUser } from '@/db/local-agnostic-operations';
 
 
 const GUEST_ID = '00000000-0000-0000-0000-000000000000';
-// This provider should have all the utilities to sign in online and offline, sign up online and sign in as a guest
+
+const USER_COLUMNS = 'id, username, email, is_guest, created_at';
+
 const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<LocalUser | null>(null);
   const [status, setStatus] = useState<AuthStatus>('loading');
@@ -19,12 +21,12 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   async function fetchUsers() {
     if (!db) { return; }
-    return await db.select('SELECT id, username, email, is_guest , access_token , refresh_token, created_at FROM "User" ORDER BY created_at DESC') as LocalUser[];
+    return await db.select(`SELECT ${USER_COLUMNS} FROM "User" ORDER BY created_at DESC`) as LocalUser[];
   }
 
-  async function fetchSignedUser (email: string) {
+  async function fetchSignedUser(email: string) {
     if (!db) return;
-    const existing = (await db.select('SELECT id, username, email, is_guest, access_token, refresh_token, created_at FROM "User" WHERE email = $1 LIMIT 1', [email.trim()])) as LocalUser[];
+    const existing = (await db.select(`SELECT ${USER_COLUMNS} FROM "User" WHERE email = $1 LIMIT 1`, [email.trim()])) as LocalUser[];
 
     let user: LocalUser = existing[0];
 
@@ -63,7 +65,6 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .maybeSingle();
 
       if (!error && data) {
-        console.log("waitForRemoteUser: User created")
         return data;
       }
     }
