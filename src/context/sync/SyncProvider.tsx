@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useIsOnline } from '../connectivity/ConnectivityHook';
 import { useAuth } from '../auth/AuthHook';
 import { downloadOnlineRegistries, mergeAndUploadRegistries, mergeOnlineWithLocal, reconcileDeletions } from '@/db/sync/sync-data';
@@ -7,6 +7,7 @@ import { getMapper } from '@/db/sync/sync-mappers';
 import { notifyLocalChange, onLocalChange } from '@/db/sync/sync-bus';
 import { getOperation } from '@/db/local-agnostic-operations';
 import { supabase } from '@/db/supabase';
+import { AuthApiError, AuthRetryableFetchError, AuthSessionMissingError } from '@supabase/supabase-js';
 import { SyncContext, type RemoteChanges, type SyncStatus } from './SyncContext';
 import type { LocalAppState, LocalUser } from '@/db/schema.sqlite';
 
@@ -106,7 +107,9 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
 
   const sync = useCallback(async () => {
     // console.log("sync: starting sync process")
-    if (!db || !isOnline || authStatus !== 'authenticated') return;
+    if (!db || !isOnline || authStatus !== 'authenticated') {
+      return;
+    }
     await pullFromRemote();
     await pushTables(ALL_TABLES);
   }, [pullFromRemote, pushTables, authStatus, isOnline, db]);
@@ -126,14 +129,14 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if(!db){return;}
+    if (!db) { return; }
     console.log("AppState refresh triggered")
-    const activeUserID = async() => {
+    const activeUserID = async () => {
       const activeUsersList: string[] = await db.select("SELECT active_user_id FROM AppState");
       return activeUsersList[0]
     }
-    
-    const updateUser = async() => {
+
+    const updateUser = async () => {
       const userID = await activeUserID();
       const user: LocalUser = await db.select("SELECT * FROM User WHERE id=$1", [userID]);
       setUser(user);
@@ -142,7 +145,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
 
     updateUser();
   }, [])
-  
+
   // Static pulling as long as there is internet connection.
   useEffect(() => {
     if (!isOnline || authStatus !== 'authenticated') return;
@@ -199,12 +202,74 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   // Auto-sync whenever connectivity is regained
   useEffect(() => {
     if (!isOnline || authStatus !== 'authenticated') return;
-    const syncChanges = async() => {
+    const syncChanges = async () => {
       await sync();
     }
     syncChanges();
-    
+
   }, [isOnline, authStatus, sync]);
+
+  // Sign in on Supabase when connectivity is regained while user is pending
+  const restoreInFlight = useRef(false);
+  useEffect(() => {
+    if (!isOnline || authStatus !== 'pending' || !user) return;
+    if (restoreInFlight.current) return;
+
+    const refreshSession = async () => {
+      restoreInFlight.current = true;
+      try {
+        const session = await getSession(getSessionKey(user));
+        console.log("internet regained, restoring session with:", session)
+
+        if (!session || !session.refresh_token) {
+          setNeedsReauth(true);
+          return;
+        }
+
+        // setSession restores the session and, via the auth state listener in
+        // AuthProvider (SIGNED_IN / TOKEN_REFRESHED), handles persisting the
+        // rotated tokens and flipping authStatus to 'authenticated'.
+        const { error } = await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        });
+
+        if (error) {
+          const isTokenInvalid =
+            error instanceof AuthApiError ||
+            error instanceof AuthSessionMissingError;
+          if (isTokenInvalid) {
+            console.error('Stored session is no longer valid:', error);
+            await clearSession(getSessionKey(user));
+            setNeedsReauth(true);
+          } else if (error instanceof AuthRetryableFetchError) {
+            console.error('Transient failure restoring session, will retry on next reconnect:', error);
+          } else {
+            console.error('Failed to restore session from keychain:', error);
+            setNeedsReauth(true);
+          }
+        }
+      } catch (err) {
+        console.error('Restoring session threw unexpectedly:', err);
+        try {
+          await clearSession(getSessionKey(user));
+        } catch {
+          // Ignore keychain cleanup failures; the reauth dialog must still open.
+        }
+        setNeedsReauth(true);
+      } finally {
+        restoreInFlight.current = false;
+      }
+    }
+    refreshSession();
+
+  }, [isOnline, authStatus, user]);
+
+  const handleReauth = async (password: string) => {
+    if (!user) return;
+    await signInOnline(user, password);
+    setNeedsReauth(false);
+  };
 
   return (
     <SyncContext.Provider value={{ status, lastSyncedAt, sync, remoteChanges, setRemoteChanges, notifyRemoteChange }}>
