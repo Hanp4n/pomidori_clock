@@ -26,13 +26,6 @@ const Login = () => {
   const [showUserList, setShowUserList] = useState(false)
   const isOnline = useIsOnline();
 
-  //Uncomment when log out is enabled
-  // useEffect(() => {
-  //   if (status === 'authenticated' || status === 'guest') {
-  //     navigate('/task', { replace: true })
-  //   }
-  // }, [status, navigate])
-
   const handleContinue = async () => {
     if (!email.trim()) {
       setError('Enter your email to continue.')
@@ -180,33 +173,38 @@ const Login = () => {
             >
               Continue as a guest
             </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleSelectAccount}
-            >
-              Select account
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={handleSelectAccount}
+              >
+                Select account
+              </Button>
+              
+            </div>
           </div>
 
-          {showUserList && localUsers.length > 0 && (
-            <div className="space-y-2 rounded-lg border p-3">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Pick an account
-              </p>
-              {localUsers.map((u) => (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => handlePickUser(u)}
-                  className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
-                >
-                  <span className="font-medium">{u.username || 'User'}</span>
-                  <span className="ml-2 text-muted-foreground">{u.email}</span>
-                </button>
-              ))}
-            </div>
-          )}
+          <Dialog open={showUserList} onOpenChange={setShowUserList}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Pick an account</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-1">
+                {localUsers.map((u) => (
+                  <Button
+                    key={u.id}
+                    variant="ghost"
+                    className="justify-start font-normal"
+                    onClick={() => handlePickUser(u)}
+                  >
+                    <span className="font-medium">{u.username || 'User'}</span>
+                    <span className="ml-auto text-muted-foreground">{u.email}</span>
+                  </Button>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>
