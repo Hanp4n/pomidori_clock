@@ -3,8 +3,6 @@ export type LocalUser = {
   username: string | null;
   email: string | null;
   is_guest: 1 | 0;
-  access_token: string | null;
-  refresh_token: string | null;
   created_at: string;
 };
 
@@ -12,8 +10,6 @@ export type NewLocalUser = {
   id: string;
   username?: string | null;
   email?: string | null;
-  access_token?: string | null;
-  refresh_token?: string | null;
   is_guest?: 1 | 0;
   created_at?: string;
 };
