@@ -35,14 +35,26 @@ const buildUpdateOperation = (
   };
 };
 
-const buildDeleteOperation = (
+const buildSoftDeleteOperation = (
   table: string,
   idValue: unknown,
   idKey = 'id',
 ): SqlOperation => ({
-  sql: `UPDATE "${table}" SET "deleted_at" = "${new Date().toISOString()}" WHERE "${idKey}" = $1`,
+  sql: `UPDATE "${table}" SET "deleted_at" = $1 WHERE "${idKey}" = $2`,
+  values: [new Date().toISOString(), idValue],
+});
+
+const buildHardDeleteOperation = (
+  table: string,
+  idValue: unknown,
+  idKey = 'id',
+): SqlOperation => ({
+  sql: `DELETE FROM "${table}" WHERE "${idKey}" = $1`,
   values: [idValue],
 });
+
+// Normally is just soft delete
+const buildDeleteOperation = buildSoftDeleteOperation;
 
 export const createTask = (task: Record<string, unknown>): SqlOperation =>
   buildInsertOperation('Task', task);
@@ -105,7 +117,7 @@ export const updateUser = (user: Record<string, unknown>): SqlOperation =>
   buildUpdateOperation('User', user);
 
 export const deleteUser = (user: Record<string, unknown>): SqlOperation =>
-  buildDeleteOperation('User', user.id);
+  buildHardDeleteOperation('User', user.id);
 
 type OperationType = 'INSERT' | 'UPDATE' | 'DELETE';
 
