@@ -19,10 +19,11 @@ export interface AuthContextValue {
   signInAsGuest: () => void;
   signOut: () => Promise<void>;
   signUpOnline: (email: string, username: string, password?: string) => Promise<void>;
-  signInOnline: (user: LocalUser)=> Promise<void>;
-  fetchUsers: ()=> Promise<LocalUser[] | undefined>;
-  fetchSignedUser: (email: string)=>Promise<LocalUser | undefined>
-  // refreshSession: () => Promise<void>;
+  signInOnline: (user: LocalUser, password: string) => Promise<void>;
+  signInOffline: (email: string, password: string) => Promise<void>;
+  reconnectOnlineSession: () => Promise<void>;
+  fetchUsers: () => Promise<LocalUser[] | undefined>;
+  fetchSignedUser: (email: string) => Promise<LocalUser | undefined>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
