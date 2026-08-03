@@ -16,7 +16,7 @@ import {
 
 const Login = () => {
   const navigate = useNavigate()
-  const { signInAsGuest, fetchSignedUser, signInOnline, fetchUsers, status } = useAuth()
+  const { signInAsGuest, fetchSignedUser, signInOnline, fetchUsers, refreshSession } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -40,7 +40,7 @@ const Login = () => {
         setLoading(false)
         return
       }
-      await signInOnline(user)
+      await signInOnline(user, password)
       navigate('/task', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed.')
