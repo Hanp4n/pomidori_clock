@@ -73,7 +73,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     throw new Error('The user was created in Auth, but no matching row was found in the remote User table yet.');
   }
 
-  
+
 
   async function signInOnline(user: LocalUser, password: string) {
     if (!db) { return; }
@@ -135,8 +135,28 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
+  async function signInAsAGuest() {
+    if (!db) { return; }
+
+    try {
+      const users: LocalUser[] = await fetchUsers() ?? [];
+      const guestUser = users.find((u) => u.id === GUEST_ID);
+      if (!guestUser) {
+        throw new Error('No guest user found');
+      }
+
+      setStatus('guest');
+      setLocalUserId(guestUser.id);
+      setUser(guestUser);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Sign in failed.';
+      console.error('Error signing as a guest:', err);
+      throw new Error(message);
+    }
+  }
+
   async function signOut() {
-    if(!user || !db) return;
+    if (!user || !db) return;
     try {
       await supabase.auth.signOut();
 
@@ -216,7 +236,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   const handleReauth = async (password: string) => {
-    console.log("reauth with user: ",user)
+    console.log("reauth with user: ", user)
     if (!user) return;
     await signInOnline(user, password);
     setNeedsReauth(false);
@@ -318,7 +338,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signInOffline,
     reconnectOnlineSession,
     refreshSession,
-    signInAsGuest: () => { setStatus('guest'); setLocalUserId(GUEST_ID); },
+    signInAsAGuest,
     exit,
     signOut
   };
