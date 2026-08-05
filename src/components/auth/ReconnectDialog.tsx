@@ -42,7 +42,7 @@ export function ReconnectDialog({ open, email, onSubmit, onClose }: ReconnectDia
         </DialogHeader>
         <div className="space-y-4">
           <div className="text-sm text-muted-foreground">
-            Your session expired while offline. Sign in again to resume syncing
+            Session expired. Sign in again to resume syncing
             {email ? (
               <span className="font-medium text-foreground"> {email}</span>
             ) : null}.
