@@ -16,7 +16,7 @@ import {
 
 const Login = () => {
   const navigate = useNavigate()
-  const { signInAsGuest, fetchSignedUser, signInOnline, fetchUsers, refreshSession, setUser, setLocalUserId } = useAuth()
+  const { signInAsAGuest, fetchSignedUser, signInOnline, fetchUsers, refreshSession, setUser, setLocalUserId } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -50,7 +50,7 @@ const Login = () => {
   }
 
   const handleGuest = () => {
-    signInAsGuest()
+    signInAsAGuest();
     navigate('/task', { replace: true })
   }
 
