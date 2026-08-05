@@ -16,7 +16,7 @@ export interface AuthContextValue {
   localUserId: string;
   setLocalUserId: (id: string) => void;
 
-  signInAsGuest: () => void;
+  signInAsAGuest: () => void;
   exit: () => Promise<void>;
   signOut: () => Promise<void>;
   signUpOnline: (email: string, username: string, password?: string) => Promise<void>;
