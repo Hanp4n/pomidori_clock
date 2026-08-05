@@ -9,6 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import TagSelector from '@/components/tasks/TagSelector'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth/AuthHook'
@@ -24,18 +25,18 @@ const TaskManager = () => {
   const { sync, remoteChanges, setRemoteChanges, notifyRemoteChange } = useSync();
   const [tasks, setTasks] = useState<LocalTask[]>([])
   const db = useDb();
-  const [categories, setCategories] = useState([
-    { id: '1', title: 'ALG', color: '#E5E7EB' },
-    { id: '2', title: 'CAL', color: '#E5E7EB' },
-    { id: '3', title: 'INF', color: '#E5E7EB' },
-    { id: '4', title: 'SED', color: '#FEF3C7' },
-  ])
+  // ponytail: hardcoded until tag management (issue #11) seeds the Category table
+  const categories = [
+    { id: '1', name: 'ALG', color: '#E5E7EB' },
+    { id: '2', name: 'CAL', color: '#E5E7EB' },
+    { id: '3', name: 'INF', color: '#E5E7EB' },
+    { id: '4', name: 'SED', color: '#FEF3C7' },
+  ]
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [modifyTaskTags, setModifyTaskTags] = useState<string[]>([])
   const [openNewTask, setOpenNewTask] = useState(false)
   const [openModifyTaskForm, setOpenModifyTaskForm] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
-  const [openNewCategory, setOpenNewCategory] = useState(false)
-  const [openTagDropdown, setOpenTagDropdown] = useState(false)
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const navigate = useNavigate();
 
   // New Task Form
@@ -45,11 +46,6 @@ const TaskManager = () => {
     n_pomodoros: 1,
   })
 
-  // New Category Form
-  const [newCategoryForm, setNewCategoryForm] = useState({
-    title: '',
-    color: '#FFFFFF',
-  })
 
   const [modifyTaskForm, setModifyTaskForm] = useState({
     title: '',
@@ -95,19 +91,6 @@ const TaskManager = () => {
       setNewTaskForm({ title: '', description: '', n_pomodoros: 1 })
       setSelectedTags([])
       setOpenNewTask(false)
-    }
-  }
-
-  const handleAddCategory = () => {
-    if (newCategoryForm.title.trim()) {
-      const category: any = {
-        id: Date.now().toString(),
-        title: newCategoryForm.title,
-        color: newCategoryForm.color,
-      }
-      setCategories([...categories, category])
-      setNewCategoryForm({ title: '', color: '#FFFFFF' })
-      setOpenNewCategory(false)
     }
   }
 
@@ -183,13 +166,6 @@ const TaskManager = () => {
     setTasks(newTasks.filter(task => task.deleted_at === null));
   }
 
-  const handleTagToggle = (categoryId: string) => {
-    setSelectedTags(prev =>
-      prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
-    )
-  }
 
   const handleExit = async () => {
     await exit();
@@ -304,6 +280,15 @@ const TaskManager = () => {
                   }
                 />
               </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="tags">Tags</Label>
+                <TagSelector
+                  id="tags"
+                  tags={categories}
+                  selected={selectedTags}
+                  onChange={setSelectedTags}
+                />
+              </div>
             </div>
             <Button
               onClick={handleAddTask}
@@ -320,6 +305,7 @@ const TaskManager = () => {
             setOpenModifyTaskForm(open);
             if (!open) {
               setSelectedTaskId(null);
+              setModifyTaskTags([]);
             }
           }}
         >
@@ -363,6 +349,15 @@ const TaskManager = () => {
                       n_pomodoros: parseInt(e.target.value) || 0,
                     })
                   }
+                />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="modify-tags">Tags</Label>
+                <TagSelector
+                  id="modify-tags"
+                  tags={categories}
+                  selected={modifyTaskTags}
+                  onChange={setModifyTaskTags}
                 />
               </div>
             </div>
