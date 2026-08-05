@@ -209,6 +209,7 @@ const Test2 = () => {
     const fetchUserTasks = async () => {
       const actualTasks: LocalTask[] = await fetchTasks() || [];
       setTasks(actualTasks.filter(task => task.deleted_at === null));
+      if (authStatus !== 'guest') sync();
     }
     fetchUserTasks();
   }, [db, user]);
@@ -239,10 +240,13 @@ const Test2 = () => {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Exit
             </Button>
-            <Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-6 py-2" onClick={handleLogOut}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Log out
-            </Button>
+            {
+              authStatus !== 'guest' &&
+              <Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-6 py-2" onClick={handleLogOut}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Log out
+              </Button>
+            }
           </div>
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">Welcome{user ? `, ${user.username || user.email}` : ''}</h1>
