@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -57,16 +57,15 @@ const Test2 = () => {
     n_pomodoros: 1
   })
 
-  const handleRetrieveTasks = async () => {
-    if (!db) return;
-
-    console.log("Doing cloud sync");
-    await sync();
-    const actualTasks: LocalTask[] = await db.select('SELECT id, title, description, n_pomodoros as n_pomodoros, user_id, completed_pomodoros, is_completed, created_at , updated_at, deleted_at, is_synced FROM Task WHERE user_id = $1 ORDER BY created_at', [user?.id || ""]);
-
-    console.log('Retrieved tasks from database:', actualTasks);
-    return actualTasks as LocalTask[];
-  };
+  const fetchTasks = async () => {
+    if (!user || !db) return;
+    try {
+      return await db.select('SELECT id, title, description, n_pomodoros as n_pomodoros, user_id, completed_pomodoros, is_completed, created_at , updated_at, deleted_at, is_synced FROM Task WHERE user_id = $1 ORDER BY created_at', [user.id || ""]) as LocalTask[];
+    } catch (err) {
+      console.error('Sign in error:', err);
+      throw err;
+    }
+  }
 
   const handleAddTask = async () => {
     if (!db) return;
@@ -201,25 +200,24 @@ const Test2 = () => {
 
   const handleExit = async () => {
     await exit();
-    navigate('/', {replace:true});
+    navigate('/', { replace: true });
   }
 
   const handleLogOut = async () => {
     await signOut();
-    navigate('/', {replace:true});
+    navigate('/', { replace: true });
   }
 
   useEffect(() => {
-    if(authStatus === 'loading')return;
+    if (authStatus === 'loading') return;
     if (!db || !user) {
       throw Error("Error fetching tasks");
     }
-    const fetchTasks = async () => {
-      const actualTasks: LocalTask[] = await handleRetrieveTasks() || [];
-      // console.log('Fetched tasks:', actualTasks);
+    const fetchUserTasks = async () => {
+      const actualTasks: LocalTask[] = await fetchTasks() || [];
       setTasks(actualTasks.filter(task => task.deleted_at === null));
     }
-    fetchTasks();
+    fetchUserTasks();
   }, [db, user]);
 
   useEffect(() => {
@@ -231,8 +229,6 @@ const Test2 = () => {
           setRemoteChanges([...newRemoteChanges])
           const actualTasks: LocalTask[] = await db.select('SELECT id, title, description, n_pomodoros as n_pomodoros, user_id, completed_pomodoros, is_completed, created_at , updated_at, deleted_at, is_synced FROM Task WHERE user_id = $1 ORDER BY created_at', [user?.id || ""]);
 
-          // console.log('Retrieved tasks from database:', actualTasks);
-          // console.log('Fetched tasks:', actualTasks);
           setTasks(actualTasks);
         }
         updateRemoteChanges();
