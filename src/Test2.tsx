@@ -85,23 +85,14 @@ const Test2 = () => {
         is_synced: 0,
       }
 
-      await db.execute(`INSERT INTO Task (id, title, description, n_pomodoros, user_id, completed_pomodoros, is_completed, created_at, updated_at, deleted_at, is_synced) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`, [
-        task.id,
-        task.title,
-        task.description,
-        task.n_pomodoros,
-        task.user_id,
-        task.completed_pomodoros,
-        0,
-        task.created_at,
-        task.updated_at,
-        task.deleted_at,
-        0
-      ]);
+      const insertOperation = createTask(task);
+      const { sql, values } = insertOperation;
+
+      await db.execute(sql, values);
 
       notifyLocalChange("Task");
       setTasks([...tasks, task])
-      setNewTaskForm({ title: '', description: '', n_pomodoros: 0 })
+      setNewTaskForm({ title: '', description: '', n_pomodoros: 1 })
       setSelectedTags([])
       setOpenNewTask(false)
     }
@@ -132,36 +123,34 @@ const Test2 = () => {
   }
 
   const handleModifyTask = async () => {
-    if (!modifyTaskForm.title.trim() || !selectedTaskId) return;
+    if (!modifyTaskForm.title.trim() || !selectedTaskId || !db) return;
 
-    if (db) {
-      const { title, description, n_pomodoros } = modifyTaskForm;
-      const updatedAt = new Date().toISOString();
-      await db.execute(
-        `UPDATE Task SET title = $1, description = $2, n_pomodoros = $3, updated_at = $4, is_synced = $5 WHERE id = $6`,
-        [title, description, n_pomodoros, updatedAt, 0, selectedTaskId]
-      );
-      notifyLocalChange("Task");
-    }
+    const taskId = tasks.findIndex(t => t.id === selectedTaskId);
 
-    const taskIndex = tasks.findIndex(task => task.id === selectedTaskId);
-    if (taskIndex === -1) {
+    if (taskId === -1) {
       setOpenModifyTaskForm(false);
       setSelectedTaskId(null);
-      return;
+      throw new Error("no task found")
     }
 
-    const updatedTask: LocalTask = {
-      ...tasks[taskIndex],
-      title: modifyTaskForm.title,
-      description: modifyTaskForm.description,
-      n_pomodoros: modifyTaskForm.n_pomodoros,
+    const { title, description, n_pomodoros } = modifyTaskForm;
+    const newTask: LocalTask = {
+      ...tasks[taskId],
+      title,
+      description,
+      n_pomodoros,
       updated_at: new Date().toISOString(),
-      is_synced: 0,
-    };
+      is_synced: 0
+    }
+
+    const updateOperation = updateTask(newTask);
+    const { sql, values } = updateOperation;
+    await db.execute(sql, values);
+
+    notifyLocalChange("Task");
 
     const newTasks = [...tasks];
-    newTasks[taskIndex] = updatedTask;
+    newTasks[taskId] = newTask;
     setTasks(newTasks);
     setOpenModifyTaskForm(false);
     setSelectedTaskId(null);
@@ -170,7 +159,11 @@ const Test2 = () => {
   const handleDeleteTask = async (task: LocalTask) => {
     if (!db) return;
     const id = task.id;
-    const deleteTask = getOperation("Task", 'DELETE');
+    let deleteType: OperationType = 'SOFT_DELETE';
+    if (authStatus === "guest") {
+      deleteType = 'HARD_DELETE';
+    }
+    const deleteTask = getOperation("Task", deleteType);
     const { sql, values } = deleteTask(task);
     await db.execute(sql, values);
 
