@@ -129,22 +129,36 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (!db) { return; }
+    if (!db) {
+      return;
+    }
     console.log("AppState refresh triggered")
     const activeUserID = async () => {
-      const activeUsersList: string[] = await db.select("SELECT active_user_id FROM AppState");
-      return activeUsersList[0]
+      const activeUsersList = await db.select<{ active_user_id: string | null }[]>(
+        "SELECT active_user_id FROM AppState"
+      );
+      return activeUsersList[0]?.active_user_id ?? null;
     }
 
     const updateUser = async () => {
+      
       const userID = await activeUserID();
-      const user: LocalUser = await db.select("SELECT * FROM User WHERE id=$1", [userID]);
+      if (!userID) return;
+      
+      const users: LocalUser[] = await db.select<LocalUser[]>(
+        "SELECT * FROM User WHERE id=$1", [userID]
+      );
+      const user = users[0];
+      console.log("AppState event: ", user);
+      if (!user) return;
+
       setUser(user);
       setLocalUserId(userID);
-    }
+      await refreshSession(user);
+    };
 
     updateUser();
-  }, [])
+  }, [db])
 
   // Static pulling as long as there is internet connection.
   useEffect(() => {
@@ -209,7 +223,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
 
   }, [isOnline, authStatus, sync]);
 
-  // Sign in on Supabase when connectivity is regained while user is pending
+  // Recover session when connectivity is regained while user is pending
   useEffect(() => {
     if (!isOnline || authStatus !== 'pending' || !user) return;
     refreshSession();
