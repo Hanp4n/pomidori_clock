@@ -12,11 +12,10 @@ import {
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth/AuthHook'
-import type Database from '@tauri-apps/plugin-sql'
 import type { LocalTask } from './db/schema.sqlite'
 import { useDb } from './context/db/DbHook'
 import { useSync } from './context/sync/SyncHook'
-import { getOperation } from './db/local-agnostic-operations'
+import { createTask, getOperation, updateTask, type OperationType } from './db/local-agnostic-operations'
 import { notifyLocalChange } from './context/sync/sync-bus'
 
 
@@ -43,7 +42,7 @@ const Test2 = () => {
   const [newTaskForm, setNewTaskForm] = useState({
     title: '',
     description: '',
-    n_pomodoros: 0,
+    n_pomodoros: 1,
   })
 
   // New Category Form
@@ -55,7 +54,7 @@ const Test2 = () => {
   const [modifyTaskForm, setModifyTaskForm] = useState({
     title: '',
     description: '',
-    n_pomodoros: 0
+    n_pomodoros: 1
   })
 
   const handleRetrieveTasks = async () => {
