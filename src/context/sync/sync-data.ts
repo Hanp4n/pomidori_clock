@@ -208,9 +208,14 @@ async function deleteRegistry<T extends SyncableRegistry>(
     return;
   }
   const conn = await db;
-  // Delete from local database
+  if (tableName === 'Category') {
+    const {sql, values} = getOperation('TaskCategory', 'HARD_DELETE')(registry);
+    await conn.execute(sql, values);
+  }
+
+  const {sql, values} = getOperation(tableName, 'HARD_DELETE')(registry);
   await conn
-    .execute(`DELETE FROM "${tableName}" WHERE id = $1`, [registry.id])
+    .execute(sql, values)
     .catch((error) => {
       console.error(
         `Error deleting ${tableName} registry ${registry.id} from local database:`,
