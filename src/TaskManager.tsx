@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import TagSelector, { type Tag } from '@/components/tasks/TagSelector'
+import { Checkbox } from '@/components/ui/checkbox'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth/AuthHook'
@@ -23,7 +24,7 @@ import { useTasks } from './context/task/TaskHook'
 const TaskManager = () => {
   const { user, localUserId, signOut, status: authStatus, exit } = useAuth();
   const { remoteChanges, setRemoteChanges, notifyRemoteChange } = useSync();
-  const { tasks, taskTags, addTask, updateTask, deleteTask, refreshTaskTags } = useTasks();
+  const { tasks, taskTags, addTask, updateTask, deleteTask, toggleComplete, refreshTaskTags } = useTasks();
   const db = useDb();
   const [categories, setCategories] = useState<Tag[]>([])
   const [selectedTags, setSelectedTags] = useState<string[]>([])
@@ -349,9 +350,16 @@ const TaskManager = () => {
             className="bg-white p-4 rounded-lg border border-gray-200 flex items-center justify-between h-20"
             onClick={() => handleOpenModifyTaskForm(task)}
           >
+            <Checkbox
+              checked={task.is_completed === 1}
+              onCheckedChange={() => toggleComplete(task.id)}
+              onClick={(e) => e.stopPropagation()}
+              className="mr-3 shrink-0"
+              aria-label={`Mark ${task.title} as completed`}
+            />
             <div className="flex-1 min-w-0 cursor-pointer">
               <div className="flex items-center gap-2 min-w-0">
-                <h3 className="font-semibold text-gray-900 truncate">{task.title}</h3>
+                <h3 className={`font-semibold truncate ${task.is_completed === 1 ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{task.title}</h3>
                 {(taskTags[task.id] ?? []).map(tag => (
                   <span
                     key={tag.id}
