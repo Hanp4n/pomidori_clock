@@ -46,6 +46,8 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         ...data,
         is_guest: 0,
       }
+
+      console.log("Creating local user...")
       const { sql, values } = createUser(user);
       await db.execute(sql, values);
     }
@@ -75,24 +77,29 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 
 
-  async function signInOnline(user: LocalUser, password: string) {
+  async function signInOnline(email: string, password: string) {
     if (!db) { return; }
 
     try {
-      if (!user.email) {
+      if (!email) {
         throw new Error('User email not available for sign in.');
       }
 
       console.log("Signing in with password")
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: user.email,
+        email,
         password,
       })
 
-      if (error) {
+      if (!data || error) {
         throw error;
       }
+      if (!data.session.user.email) throw new Error("No email found");
 
+      const user = await fetchSignedUser(data.session.user.email);
+      if (!user) {
+        throw new Error('No account found with that email.')
+      }
       if (data.session) {
         await saveSession(getSessionKey(user), {
           access_token: data.session.access_token,
@@ -100,14 +107,14 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
       }
 
-      await db.execute(
-        `UPDATE "AppState" SET active_user_id = $1 WHERE id = 1`,
-        [user.id]
-      );
+      const newUser: LocalUser = {
+        ...user,
+        is_guest: 0
+      }
 
       setStatus('authenticated');
-      setLocalUserId(user.id);
-      setUser(user);
+      setLocalUserId(newUser.id);
+      setUser(newUser);
     } catch (err) {
       console.error('Sign in error:', err);
       throw err;
