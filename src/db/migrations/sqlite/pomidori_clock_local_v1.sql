@@ -60,7 +60,8 @@ VALUES ('00000000-0000-0000-0000-000000000000', 'guest', NULL, 1, CURRENT_TIMEST
 -- PomodoroConfig
 -- ------------------------------------------------------------
 CREATE TABLE "PomodoroConfig" (
-  "user_id" TEXT PRIMARY KEY NOT NULL,
+  "id" TEXT PRIMARY KEY,
+  "user_id" TEXT NOT NULL,
   "focus_time" INTEGER NOT NULL,
   "short_break_time" INTEGER NOT NULL,
   "long_break_time" INTEGER NOT NULL,
@@ -132,12 +133,12 @@ CREATE UNIQUE INDEX "idx_category_user_name" ON "Category" ("user_id", "name");
 -- TaskCategory
 -- ------------------------------------------------------------
 CREATE TABLE "TaskCategory" (
+  "id" TEXT PRIMARY KEY,
   "task_id" TEXT NOT NULL,
   "category_id" TEXT NOT NULL,
   "created_at" TEXT NOT NULL,
   "deleted_at" TEXT,
   "is_synced" INTEGER NOT NULL DEFAULT 0 CHECK ("is_synced" IN (0, 1)),
-  PRIMARY KEY ("task_id", "category_id"),
   FOREIGN KEY ("task_id") REFERENCES "Task" ("id") ON DELETE CASCADE,
   FOREIGN KEY ("category_id") REFERENCES "Category" ("id")
 );
