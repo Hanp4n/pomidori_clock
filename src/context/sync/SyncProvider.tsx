@@ -14,12 +14,24 @@ import { ReconnectDialog } from '@/components/auth/ReconnectDialog';
 
 const ALL_TABLES = ['Task', 'Category', 'TaskCategory', 'PomodoroConfig', 'PomodoroSession'];
 
+type BackupTableList = {
+  tables: string[],
+  state: boolean
+}
+
+const INIT_BACKUP = {
+  tables: [],
+  state: false
+}
+
 export function SyncProvider({ children }: { children: React.ReactNode }) {
   const isOnline = useIsOnline();
-  const { status: authStatus, localUserId, user, setUser, setLocalUserId, signInOnline, refreshSession } = useAuth();
+  const { status: authStatus, localUserId, user, setUser, setLocalUserId, refreshSession } = useAuth();
   const [status, setStatus] = useState<SyncStatus>('idle');
   const [remoteChanges, setRemoteChanges] = useState<RemoteChanges[]>([] as RemoteChanges[]);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const pullAgain = useRef<BackupTableList>(INIT_BACKUP);
+  const pushAgain = useRef<BackupTableList>(INIT_BACKUP);
   const db = useDb();
 
   const pushTables = useCallback(async (tables: string[] = ALL_TABLES) => {
@@ -40,8 +52,11 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       setLastSyncedAt(new Date());
       setStatus('idle');
       // console.log("pushTables: finishing sync process");
-    } catch {
+    } catch (err) {
       setStatus('error');
+      console.error("Error pushing: ", err)
+      pushAgain.current.state = true;
+      pushAgain.current.tables = tables;
     }
   }, [db, isOnline, authStatus, localUserId]);
 
@@ -61,6 +76,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     setStatus('syncing');
     try {
       await Promise.all(tables.map(async (tableName) => {
+        console.log("pulling ", tableName)
         const pullingQuery = tableName === 'TaskCategory'
           ? `SELECT tc.* FROM "TaskCategory" tc
        JOIN "Task" t ON t.id = tc.task_id
@@ -100,7 +116,9 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       setStatus('idle');
     } catch (err) {
       setStatus('error')
-      console.log("Error pulling: ", err);
+      console.error("Error pulling: ", err);
+      pullAgain.current.state = true;
+      pullAgain.current.tables = tables;
     }
 
   }, [db, isOnline, authStatus, localUserId]);
@@ -141,10 +159,10 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     }
 
     const updateUser = async () => {
-      
+
       const userID = await activeUserID();
       if (!userID) return;
-      
+
       const users: LocalUser[] = await db.select<LocalUser[]>(
         "SELECT * FROM User WHERE id=$1", [userID]
       );
@@ -205,9 +223,11 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(timeout);
       timeout = setTimeout(async () => {
         const tables = Array.from(pendingTables);
+        if (tables.find(t => t === "TaskCategory")) console.log("Pushin TaskCategory rows...")
+        if (tables.find(t => t === "Task")) console.log("Pushin Task rows...")
         pendingTables.clear();
         await pushTables(tables);
-      }, 800);
+      }, 1000);
     });
 
     return () => { unsubscribe(); clearTimeout(timeout); };
@@ -229,6 +249,33 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     refreshSession();
 
   }, [isOnline, authStatus, user]);
+
+  useEffect(() => {
+    if (!pullAgain.current) return;
+    const pullingAgain = async () => {
+      setTimeout(async () => {
+        console.log("Pulling again...")
+        await pullFromRemote(pullAgain.current.tables)
+      }, 1000)
+    }
+
+    pullingAgain();
+    pullAgain.current = INIT_BACKUP;
+  }, [status, setStatus, pullFromRemote])
+
+  useEffect(() => {
+    if (!pushAgain.current) return;
+    const pushingAgain = async () => {
+      setTimeout(async () => {
+        console.log("Pushing again...")
+        await pushTables(pushAgain.current.tables)
+      }, 1000)
+    }
+
+    pushingAgain();
+    pushAgain.current = INIT_BACKUP;
+  }, [status, setStatus, pushTables])
+
 
   return (
     <SyncContext.Provider value={{ status, lastSyncedAt, sync, remoteChanges, setRemoteChanges, notifyRemoteChange }}>
