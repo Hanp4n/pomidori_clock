@@ -16,22 +16,16 @@ import { useAuth } from '@/context/auth/AuthHook'
 import type { LocalTask } from './db/schema.sqlite'
 import { useDb } from './context/db/DbHook'
 import { useSync } from './context/sync/SyncHook'
-import { createTask, getOperation, updateTask, type OperationType } from './db/local-agnostic-operations'
 import { notifyLocalChange } from './context/sync/sync-bus'
+import { useTasks } from './context/task/TaskHook'
 
 
 const TaskManager = () => {
   const { user, localUserId, signOut, status: authStatus, exit } = useAuth();
-  const { sync, remoteChanges, setRemoteChanges, notifyRemoteChange } = useSync();
-  const [tasks, setTasks] = useState<LocalTask[]>([])
+  const { remoteChanges, setRemoteChanges, notifyRemoteChange } = useSync();
+  const { tasks, taskTags, addTask, updateTask, deleteTask, refreshTaskTags } = useTasks();
   const db = useDb();
-  // ponytail: hardcoded until tag management (issue #11) seeds the Category table
-  const categories = [
-    { id: '1', name: 'ALG', color: '#E5E7EB' },
-    { id: '2', name: 'CAL', color: '#E5E7EB' },
-    { id: '3', name: 'INF', color: '#E5E7EB' },
-    { id: '4', name: 'SED', color: '#FEF3C7' },
-  ]
+  const [categories, setCategories] = useState<Tag[]>([])
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [modifyTaskTags, setModifyTaskTags] = useState<string[]>([])
   const [openNewTask, setOpenNewTask] = useState(false)
@@ -53,48 +47,70 @@ const TaskManager = () => {
     n_pomodoros: 1
   })
 
-  const fetchTasks = async () => {
-    if (!user || !db) return;
-    try {
-      return await db.select('SELECT id, title, description, n_pomodoros as n_pomodoros, user_id, completed_pomodoros, is_completed, created_at , updated_at, deleted_at, is_synced FROM Task WHERE user_id = $1 ORDER BY created_at', [user.id || ""]) as LocalTask[];
-    } catch (err) {
-      console.error('Sign in error:', err);
-      throw err;
+  const fetchCategories = async (): Promise<Tag[]> => {
+    if (!db) return [];
+    const rows = await db.select<{ id: string; name: string; color: string }[]>(
+      'SELECT id, name, color FROM Category WHERE user_id = $1 AND deleted_at IS NULL ORDER BY created_at',
+      [localUserId],
+    );
+    return rows;
+  }
+
+  const loadTags = async () => {
+    setCategories(await fetchCategories());
+    await refreshTaskTags();
+  }
+
+  const handleCreateCategory = async (name: string, color: string) => {
+    if (!db) return;
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    await db.execute(
+      `INSERT INTO "Category" ("id", "name", "color", "user_id", "created_at", "updated_at", "deleted_at", "is_synced")
+       VALUES ($1, $2, $3, $4, $5, $5, NULL, 0)`,
+      [id, name, color, localUserId, now],
+    );
+    notifyLocalChange("Category");
+    await loadTags();
+  }
+
+  const handleUpdateCategory = async (catId: string, name: string, color: string) => {
+    if (!db) return;
+    const now = new Date().toISOString();
+    await db.execute(
+      `UPDATE "Category" SET "name" = $1, "color" = $2, "updated_at" = $3, "is_synced" = 0 WHERE "id" = $4`,
+      [name, color, now, catId],
+    );
+    notifyLocalChange("Category");
+    await loadTags();
+  }
+
+  const handleDeleteCategory = async (catId: string) => {
+    if (!db) return;
+    const now = new Date().toISOString();
+    if (authStatus === "guest") {
+      await db.execute(`DELETE FROM "TaskCategory" WHERE "category_id" = $1`, [catId]);
+      await db.execute(`DELETE FROM "Category" WHERE "id" = $1`, [catId]);
+    } else {
+      await db.execute(`UPDATE "TaskCategory" SET "deleted_at" = $1, "is_synced" = 0 WHERE "category_id" = $2`, [now, catId]);
+      await db.execute(
+        `UPDATE "Category" SET "deleted_at" = $1, "is_synced" = 0 WHERE "id" = $2`,
+        [now, catId],
+      );
     }
+    notifyLocalChange("Category");
+    await loadTags();
   }
 
   const handleAddTask = async () => {
-    if (!db) return;
-    if (newTaskForm.title.trim()) {
-
-      const task: LocalTask = {
-        id: crypto.randomUUID(),
-        title: newTaskForm.title,
-        description: newTaskForm.description,
-        n_pomodoros: newTaskForm.n_pomodoros,
-        user_id: localUserId,
-        completed_pomodoros: 0,
-        is_completed: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        deleted_at: null,
-        is_synced: 0,
-      }
-
-      const insertOperation = createTask(task);
-      const { sql, values } = insertOperation;
-
-      await db.execute(sql, values);
-
-      notifyLocalChange("Task");
-      setTasks([...tasks, task])
-      setNewTaskForm({ title: '', description: '', n_pomodoros: 1 })
-      setSelectedTags([])
-      setOpenNewTask(false)
-    }
+    if (!newTaskForm.title.trim()) return;
+    await addTask(newTaskForm, selectedTags);
+    setNewTaskForm({ title: '', description: '', n_pomodoros: 1 })
+    setSelectedTags([])
+    setOpenNewTask(false)
   }
 
-  const handleOpenModifyTaskForm = (task: LocalTask) => {
+  const handleOpenModifyTaskForm = async (task: LocalTask) => {
     const { title, description, n_pomodoros } = task;
     setModifyTaskForm({
       title,
@@ -102,68 +118,19 @@ const TaskManager = () => {
       n_pomodoros
     })
     setSelectedTaskId(task.id);
+    setModifyTaskTags((taskTags[task.id] ?? []).map(t => t.id));
     setOpenModifyTaskForm(true);
   }
 
   const handleModifyTask = async () => {
-    if (!modifyTaskForm.title.trim() || !selectedTaskId || !db) return;
-
-    const taskId = tasks.findIndex(t => t.id === selectedTaskId);
-
-    if (taskId === -1) {
-      setOpenModifyTaskForm(false);
-      setSelectedTaskId(null);
-      throw new Error("no task found")
-    }
-
-    const { title, description, n_pomodoros } = modifyTaskForm;
-    const newTask: LocalTask = {
-      ...tasks[taskId],
-      title,
-      description,
-      n_pomodoros,
-      updated_at: new Date().toISOString(),
-      is_synced: 0
-    }
-
-    const updateOperation = updateTask(newTask);
-    const { sql, values } = updateOperation;
-    await db.execute(sql, values);
-
-    notifyLocalChange("Task");
-
-    const newTasks = [...tasks];
-    newTasks[taskId] = newTask;
-    setTasks(newTasks);
+    if (!modifyTaskForm.title.trim() || !selectedTaskId) return;
+    await updateTask(selectedTaskId, modifyTaskForm, modifyTaskTags);
     setOpenModifyTaskForm(false);
     setSelectedTaskId(null);
   }
 
   const handleDeleteTask = async (task: LocalTask) => {
-    if (!db) return;
-    const id = task.id;
-    let deleteType: OperationType = 'SOFT_DELETE';
-    if (authStatus === "guest") {
-      deleteType = 'HARD_DELETE';
-    }
-    const deleteTask = getOperation("Task", deleteType);
-    const { sql, values } = deleteTask(task);
-    await db.execute(sql, values);
-
-    notifyLocalChange("Task");
-
-    const newTasks = tasks.map(task => {
-      if (task.id === id) {
-        const softDeletedTask: LocalTask = {
-          ...task,
-          deleted_at: new Date().toISOString()
-        }
-        return softDeletedTask;
-      } else {
-        return task
-      }
-    })
-    setTasks(newTasks.filter(task => task.deleted_at === null));
+    await deleteTask(task);
   }
 
 
@@ -182,29 +149,26 @@ const TaskManager = () => {
     if (!db || !user) {
       throw Error("Error fetching tasks");
     }
-    const fetchUserTasks = async () => {
-      const actualTasks: LocalTask[] = await fetchTasks() || [];
-      setTasks(actualTasks.filter(task => task.deleted_at === null));
-      if (authStatus !== 'guest') sync();
-    }
-    fetchUserTasks();
+    const loadCategories = async () => {
+      await loadTags();
+    };
+    loadCategories();
   }, [db, user]);
 
   useEffect(() => {
-    const taskRemoteChanges = remoteChanges.find(remoteChange => remoteChange.table === "Task") ?? null;
-    if (taskRemoteChanges && !taskRemoteChanges.remoteSynced) {
+    const categoryRemoteChanges = remoteChanges.find(remoteChange => remoteChange.table === "Category") ?? null;
+    if (categoryRemoteChanges && !categoryRemoteChanges.remoteSynced) {
       if (db) {
         const updateRemoteChanges = async () => {
-          const newRemoteChanges = notifyRemoteChange("Task", true);
+          const newRemoteChanges = notifyRemoteChange("Category", true);
           setRemoteChanges([...newRemoteChanges])
-          const actualTasks: LocalTask[] = await db.select('SELECT id, title, description, n_pomodoros as n_pomodoros, user_id, completed_pomodoros, is_completed, created_at , updated_at, deleted_at, is_synced FROM Task WHERE user_id = $1 ORDER BY created_at', [user?.id || ""]);
-
-          setTasks(actualTasks);
+          setCategories(await fetchCategories());
+          await refreshTaskTags();
         }
         updateRemoteChanges();
       }
     }
-  }, [remoteChanges])
+  }, [remoteChanges, db, refreshTaskTags])
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
