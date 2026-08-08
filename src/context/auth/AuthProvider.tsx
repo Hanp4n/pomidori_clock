@@ -317,10 +317,17 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.error('Failed to save session to keychain:', err);
         }
 
-        await db.execute(
-          `UPDATE "AppState" SET active_user_id = $1 WHERE id = 1`,
-          [session.user.id]
-        );
+        // Only point AppState at this user if they exist locally already.
+        // On first sign-in SIGNED_IN fires before fetchSignedUser inserts the
+        // row, and updating here would violate the FK on active_user_id.
+        
+        const signedUser = await fetchSignedUser(newUser.email ?? "");
+        if (signedUser) {
+          await db.execute(
+            `UPDATE "AppState" SET active_user_id = $1 WHERE id = 1`,
+            [signedUser.id]
+          );
+        }
 
         setUser(newUser);
         setLocalUserId(newUser.id);
