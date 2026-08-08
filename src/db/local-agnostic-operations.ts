@@ -87,7 +87,7 @@ export const deleteTaskCategory = (taskCategory: Record<string, unknown>): SqlOp
   buildSoftDeleteOperation('TaskCategory', taskCategory.id);
 
 export const hardDeleteTaskCategory = (taskCategory: Record<string, unknown>): SqlOperation =>
-  buildHardDeleteOperation('TaskCategory', taskCategory.id);
+  buildHardDeleteOperation('TaskCategory', taskCategory.task_id, 'task_id');
 
 export const createPomodoroConfig = (config: Record<string, unknown>): SqlOperation =>
   buildInsertOperation('PomodoroConfig', config);
