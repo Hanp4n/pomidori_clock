@@ -6,6 +6,8 @@ export type NewTaskInput = {
   title: string;
   description?: string | null;
   n_pomodoros?: number;
+  completed_pomodoros?: number;
+  is_completed?: 1 | 0;
 };
 
 export interface TaskContextValue {

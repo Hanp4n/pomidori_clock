@@ -102,7 +102,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     setTaskTags(await fetchTaskTags());
   }, [db, localUserId, tasks, replaceTaskTags, fetchTaskTags]);
 
-  const updateTask = useCallback(async (id: string, input: NewTaskInput, tagIds: string[] = []) => {
+  const updateTask = useCallback(async (id: string, input: NewTaskInput, tagIds?: string[]) => {
     if (!db || !input.title.trim()) return;
 
     const taskIndex = tasks.findIndex(t => t.id === id);
@@ -113,13 +113,22 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       title: input.title,
       description: input.description ?? null,
       n_pomodoros: input.n_pomodoros ?? tasks[taskIndex].n_pomodoros,
+      completed_pomodoros: input.completed_pomodoros ?? tasks[taskIndex].completed_pomodoros,
+      is_completed: input.is_completed !== undefined
+        ? input.is_completed
+        : input.completed_pomodoros !== undefined
+          && input.completed_pomodoros >= (input.n_pomodoros ?? tasks[taskIndex].n_pomodoros)
+          ? 1
+          : tasks[taskIndex].is_completed,
       updated_at: new Date().toISOString(),
       is_synced: 0,
     };
 
     const { sql, values } = updateTaskOp(updated);
     await db.execute(sql, values);
-    await replaceTaskTags(id, tagIds);
+    // ponytail: undefined tagIds means "don't touch tags" — a forgotten arg
+    // must never silently wipe a task's categories.
+    if (tagIds !== undefined) await replaceTaskTags(id, tagIds);
     
     const newTasks = [...tasks];
     newTasks[taskIndex] = updated;

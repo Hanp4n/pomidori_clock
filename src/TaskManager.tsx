@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import TagSelector, { type Tag } from '@/components/tasks/TagSelector'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth/AuthHook'
 import type { LocalTask } from './db/schema.sqlite'
@@ -45,7 +45,8 @@ const TaskManager = () => {
   const [modifyTaskForm, setModifyTaskForm] = useState({
     title: '',
     description: '',
-    n_pomodoros: 1
+    n_pomodoros: 1,
+    completed_pomodoros: 0,
   })
 
   const fetchCategories = async (): Promise<Tag[]> => {
@@ -112,11 +113,12 @@ const TaskManager = () => {
   }
 
   const handleOpenModifyTaskForm = async (task: LocalTask) => {
-    const { title, description, n_pomodoros } = task;
+    const { title, description, n_pomodoros, completed_pomodoros } = task;
     setModifyTaskForm({
       title,
       description: description ?? "",
-      n_pomodoros
+      n_pomodoros,
+      completed_pomodoros,
     })
     setSelectedTaskId(task.id);
     setModifyTaskTags((taskTags[task.id] ?? []).map(t => t.id));
@@ -132,6 +134,17 @@ const TaskManager = () => {
 
   const handleDeleteTask = async (task: LocalTask) => {
     await deleteTask(task);
+  }
+
+  const handleAdjustPomodoros = (task: LocalTask, delta: number) => {
+    const completed = Math.max(0, Math.min(task.n_pomodoros, task.completed_pomodoros + delta));
+    updateTask(task.id, {
+      title: task.title,
+      description: task.description,
+      n_pomodoros: task.n_pomodoros,
+      completed_pomodoros: completed,
+      is_completed: completed >= task.n_pomodoros ? 1 : 0,
+    });
   }
 
 
@@ -205,66 +218,66 @@ const TaskManager = () => {
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>New Task</DialogTitle>
-            </DialogHeader>
-            <div className="grid grid-cols-2 gap-6 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  placeholder="Enter task title"
-                  value={newTaskForm.title}
-                  onChange={(e) =>
-                    setNewTaskForm({ ...newTaskForm, title: e.target.value })
-                  }
-                />
+              <DialogHeader>
+                <DialogTitle>New Task</DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-2 gap-6 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    placeholder="Enter task title"
+                    value={newTaskForm.title}
+                    onChange={(e) =>
+                      setNewTaskForm({ ...newTaskForm, title: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description (Optional)</Label>
+                  <Input
+                    id="description"
+                    placeholder="Enter description"
+                    value={newTaskForm.description}
+                    onChange={(e) =>
+                      setNewTaskForm({ ...newTaskForm, description: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pomodoros">Pomodoros</Label>
+                  <Input
+                    id="pomodoros"
+                    type="number"
+                    min="1"
+                    value={newTaskForm.n_pomodoros}
+                    onChange={(e) =>
+                      setNewTaskForm({
+                        ...newTaskForm,
+                        n_pomodoros: parseInt(e.target.value) || 0,
+                      })
+                    }
+                  />
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor="tags">Tags</Label>
+                  <TagSelector
+                    id="tags"
+                    tags={categories}
+                    selected={selectedTags}
+                    onChange={setSelectedTags}
+                    onCreate={handleCreateCategory}
+                    onUpdate={handleUpdateCategory}
+                    onDelete={handleDeleteCategory}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
-                <Input
-                  id="description"
-                  placeholder="Enter description"
-                  value={newTaskForm.description}
-                  onChange={(e) =>
-                    setNewTaskForm({ ...newTaskForm, description: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="pomodoros">Pomodoros</Label>
-                <Input
-                  id="pomodoros"
-                  type="number"
-                  min="1"
-                  value={newTaskForm.n_pomodoros}
-                  onChange={(e) =>
-                    setNewTaskForm({
-                      ...newTaskForm,
-                      n_pomodoros: parseInt(e.target.value) || 0,
-                    })
-                  }
-                />
-              </div>
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="tags">Tags</Label>
-                <TagSelector
-                  id="tags"
-                  tags={categories}
-                  selected={selectedTags}
-                  onChange={setSelectedTags}
-                  onCreate={handleCreateCategory}
-                  onUpdate={handleUpdateCategory}
-                  onDelete={handleDeleteCategory}
-                />
-              </div>
-            </div>
-            <Button
-              onClick={handleAddTask}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white"
-            >
-              Save changes
-            </Button>
+              <Button
+                onClick={handleAddTask}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white"
+              >
+                Save changes
+              </Button>
             </DialogContent>
           </Dialog>
           <Button
@@ -332,6 +345,22 @@ const TaskManager = () => {
                   }
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="modify-completed-pomodoros">Completed pomodoros</Label>
+                <Input
+                  id="modify-completed-pomodoros"
+                  type="number"
+                  min="0"
+                  max={modifyTaskForm.n_pomodoros}
+                  value={modifyTaskForm.completed_pomodoros}
+                  onChange={(e) =>
+                    setModifyTaskForm({
+                      ...modifyTaskForm,
+                      completed_pomodoros: parseInt(e.target.value) || 0,
+                    })
+                  }
+                />
+              </div>
               <div className="col-span-2 space-y-2">
                 <Label htmlFor="modify-tags">Tags</Label>
                 <TagSelector
@@ -360,7 +389,7 @@ const TaskManager = () => {
         {tasks.map(task => (
           <div
             key={task.id}
-            className="bg-white p-4 rounded-lg border border-gray-200 flex items-center justify-between h-20"
+            className="relative overflow-hidden bg-white p-4 rounded-lg border border-gray-200 flex items-center justify-between h-20 transition-all hover:border-gray-300 hover:shadow-sm"
             onClick={() => handleOpenModifyTaskForm(task)}
           >
             <Checkbox
@@ -388,12 +417,39 @@ const TaskManager = () => {
               )}
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm font-medium text-gray-600">
-                {task.completed_pomodoros}/{task.n_pomodoros}
-              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  className="flex flex-col rounded-md hover:bg-muted"
+                  onClick={(e) => { e.stopPropagation(); handleAdjustPomodoros(task, 1); }}
+                  disabled={task.completed_pomodoros >= task.n_pomodoros}
+                  aria-label="Increment completed pomodoros"
+                >
+                  <ChevronUp className="w-4 h-4 text-gray-500" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleAdjustPomodoros(task, 1); }}
+                  disabled={task.completed_pomodoros >= task.n_pomodoros}
+                  aria-label="Increment completed pomodoros"
+                  className={`rounded-md px-1.5 text-sm font-medium hover:bg-muted disabled:pointer-events-none ${task.completed_pomodoros >= task.n_pomodoros ? 'text-red-600' : 'text-gray-600'}`}
+                >
+                  {task.completed_pomodoros}/{task.n_pomodoros}
+                </button>
+                <button
+                  type="button"
+                  className="flex flex-col rounded-md hover:bg-muted"
+                  onClick={(e) => { e.stopPropagation(); handleAdjustPomodoros(task, -1); }}
+                  disabled={task.completed_pomodoros <= 0}
+                  aria-label="Decrement completed pomodoros"
+                >
+                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
+                className="hover:text-red-500"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDeleteTask(task);
@@ -402,6 +458,14 @@ const TaskManager = () => {
                 <Trash2 className="w-4 h-4 text-gray-400" />
               </Button>
             </div>
+            <div
+              className="absolute bottom-0 left-0 h-[3px] bg-red-500 rounded-r-full"
+              style={{
+                width: task.n_pomodoros > 0
+                  ? `${Math.min(100, (task.completed_pomodoros / task.n_pomodoros) * 100)}%`
+                  : '0%',
+              }}
+            />
           </div>
         ))}
       </div>
