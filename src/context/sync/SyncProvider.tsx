@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthHook';
 import { downloadOnlineRegistries, mergeAndUploadRegistries, mergeOnlineWithLocal, reconcileDeletions } from '@/context/sync/sync-data';
 import { useDb } from '../db/DbHook';
 import { getMapper } from '@/context/sync/sync-mappers';
-import { notifyLocalChange, onLocalChange } from '@/context/sync/sync-bus';
+import { onLocalChange } from '@/context/sync/sync-bus';
 import { getOperation } from '@/db/local-agnostic-operations';
 import { supabase } from '@/db/supabase';
 import { SyncContext, type RemoteChanges, type SyncStatus } from './SyncContext';
@@ -50,9 +50,9 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
           [localUserId]
         );
         // console.log("Pending local registries for " + table + ": ", pendingLocalRegistries)
-        if (pendingLocalRegistries.length === 0) return;
+        if (pendingLocalRegistries.length === 0) continue;
         await mergeAndUploadRegistries<any, any>(table, pendingLocalRegistries, getMapper(table, 'localToRemote'));
-      }));
+      }
 
       setLastSyncedAt(new Date());
       setStatus('idle');
