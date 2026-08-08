@@ -99,7 +99,7 @@ export async function mergeAndUploadRegistries<
       }
 
       if (error)
-        console.error(`Error uploading ${tableName} to supabase:`, error);
+        throw new Error(`Error uploading ${tableName} to supabase:`, error);
     }
 
     // 4. Flag all the merged registries as synced
