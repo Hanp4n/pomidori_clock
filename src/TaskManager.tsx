@@ -346,16 +346,25 @@ const TaskManager = () => {
         {tasks.map(task => (
           <div
             key={task.id}
-            className="bg-white p-4 rounded-lg border border-gray-200 flex items-center justify-between"
+            className="bg-white p-4 rounded-lg border border-gray-200 flex items-center justify-between h-20"
             onClick={() => handleOpenModifyTaskForm(task)}
           >
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900">{task.title}</h3>
-              {task.description && (
-                <p className="text-sm text-gray-600">{task.description}</p>
-              )}
-              <div className="flex gap-2 mt-2">
+            <div className="flex-1 min-w-0 cursor-pointer">
+              <div className="flex items-center gap-2 min-w-0">
+                <h3 className="font-semibold text-gray-900 truncate">{task.title}</h3>
+                {(taskTags[task.id] ?? []).map(tag => (
+                  <span
+                    key={tag.id}
+                    className="inline-flex h-5 shrink-0 items-center rounded-full px-2 text-xs font-medium"
+                    style={{ backgroundColor: tag.color }}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
               </div>
+              {task.description && (
+                <p className="text-sm text-gray-600 truncate">{task.description}</p>
+              )}
             </div>
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium text-gray-600">
