@@ -214,9 +214,8 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         is_guest: 0,
         created_at: data.created_at,
       }
-      const insertOperation = createUser(newLocalUser);
-      const { sql, values } = insertOperation;
 
+      const { sql, values } = createUser(newLocalUser);
       await db.execute(sql, values);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Sign up failed.';
@@ -243,9 +242,8 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   const handleReauth = async (password: string) => {
-    console.log("reauth with user: ", user)
-    if (!user) return;
-    await signInOnline(user, password);
+    if (!user?.email) return;
+    await signInOnline(user.email, password);
     setNeedsReauth(false);
   };
 
