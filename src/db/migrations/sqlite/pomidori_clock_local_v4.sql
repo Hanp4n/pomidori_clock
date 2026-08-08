@@ -1,2 +1,3 @@
-ALTER TABLE "TaskCategory" ADD COLUMN "id" TEXT;
-ALTER TABLE "PomodoroConfig" ADD COLUMN "id" TEXT;
+-- migration 4: tokens moved to the OS keychain, no longer stored on the user row
+ALTER TABLE "User" DROP COLUMN "access_token";
+ALTER TABLE "User" DROP COLUMN "refresh_token";

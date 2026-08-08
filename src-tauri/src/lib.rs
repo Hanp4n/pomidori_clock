@@ -22,13 +22,13 @@ pub fn run() {
         },
         Migration {
             version: 4,
-            description: "add_id_task_category_pomodoro_config_tables",
+            description: "remove_auth_tokens_from_user",
             sql: include_str!("../../src/db/migrations/sqlite/pomidori_clock_local_v4.sql"),
             kind: MigrationKind::Up,
         },
         Migration {
             version: 5,
-            description: "remove_auth_tokens_from_user",
+            description: "unique_taskcategory_per_task_and_category",
             sql: include_str!("../../src/db/migrations/sqlite/pomidori_clock_local_v5.sql"),
             kind: MigrationKind::Up,
         },
