@@ -16,7 +16,7 @@ import {
 
 const Login = () => {
   const navigate = useNavigate()
-  const { signInAsAGuest, fetchSignedUser, signInOnline, fetchUsers, refreshSession, setUser, setLocalUserId } = useAuth()
+  const { signInAsAGuest, signInOnline, fetchUsers, refreshSession, setUser, setLocalUserId } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -34,13 +34,14 @@ const Login = () => {
     setLoading(true)
     setError(null)
     try {
-      const user = await fetchSignedUser(email.trim())
-      if (!user) {
-        setError('No account found with that email.')
-        setLoading(false)
-        return
-      }
-      await signInOnline(user, password)
+      // const user = await fetchSignedUser(email.trim())
+      // if (!user) {
+      //   setError('No account found with that email.')
+      //   setLoading(false)
+      //   return
+      // }
+      console.log("sign in...")
+      await signInOnline(email.trim(), password)
       navigate('/task', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed.')
