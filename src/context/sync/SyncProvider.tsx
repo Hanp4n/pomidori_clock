@@ -105,16 +105,20 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         // console.log("pullFromRemote: New Registries", newRegistries);
         await Promise.all(
           newRegistries.map(async (registry) => {
+            console.log("creating a new registry for", tableName)
             const operationType: 'INSERT' | 'UPDATE' = localIds.has(registry.id) ? 'UPDATE' : 'INSERT';
-            // console.log("pullingFromRemote: ", operationType)
-            const sqlOperationFunction = getOperation(tableName, operationType);
-            const sqlOperation = sqlOperationFunction(registry);
-            // console.log(sqlOperation.values);
-            await db.execute(sqlOperation.sql, [...sqlOperation.values]);
+            const sqlOperation = getOperation(tableName, operationType)(registry);
+            if (tableName === 'TaskCategory' && operationType === 'UPDATE') {
+              // don't resurrect a link the user removed while this pull was in flight
+              sqlOperation.sql += ' AND "deleted_at" IS NULL';
+            }
+            await db.execute(sqlOperation.sql, [...sqlOperation.values]).catch(err => {
+              console.error("Error pulling ", registry, ":", err)
+            })
 
-            setRemoteChanges([...newRemoteChanges])
           })
         );
+        setRemoteChanges([...newRemoteChanges])
       }));
 
       setLastSyncedAt(new Date());
