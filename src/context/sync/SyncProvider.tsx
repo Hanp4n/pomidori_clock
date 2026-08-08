@@ -8,9 +8,7 @@ import { notifyLocalChange, onLocalChange } from '@/context/sync/sync-bus';
 import { getOperation } from '@/db/local-agnostic-operations';
 import { supabase } from '@/db/supabase';
 import { SyncContext, type RemoteChanges, type SyncStatus } from './SyncContext';
-import type { LocalAppState, LocalUser } from '@/db/schema.sqlite';
-import { getSession, getSessionKey, clearSession } from '../auth/session-keychain';
-import { ReconnectDialog } from '@/components/auth/ReconnectDialog';
+import type { LocalUser } from '@/db/schema.sqlite';
 
 const ALL_TABLES = ['Task', 'Category', 'TaskCategory', 'PomodoroConfig', 'PomodoroSession'];
 
@@ -39,9 +37,16 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     if (!db || !isOnline || authStatus !== 'authenticated') return;
     setStatus('syncing');
     try {
-      await Promise.all(tables.map(async (table) => {
+      console.log("Table order:", tables)
+      for (const table of tables) {
+        const pushingQuery = table === "TaskCategory" ?
+          `SELECT tc.* FROM "TaskCategory" tc
+       JOIN "Task" t ON t.id = tc.task_id
+       WHERE t.user_id = $1 AND (tc.is_synced = 0 OR tc.deleted_at IS NOT NULL)`
+          : `SELECT * FROM "${table}" WHERE user_id = $1 AND (is_synced = 0 OR deleted_at IS NOT NULL)`
+
         const pendingLocalRegistries = await db.select<any[]>(
-          `SELECT * FROM "${table}" WHERE user_id = $1 AND (is_synced = 0 OR deleted_at IS NOT NULL)`,
+          pushingQuery,
           [localUserId]
         );
         // console.log("Pending local registries for " + table + ": ", pendingLocalRegistries)
