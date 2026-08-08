@@ -146,6 +146,10 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     notifyLocalChange("TaskCategory");
   }, [db, authStatus]);
 
+  const clearCompleted = useCallback(async () => {
+    await Promise.all(tasks.filter(t => t.is_completed === 1).map(deleteTask));
+  }, [tasks, deleteTask]);
+
   const toggleComplete = useCallback(async (id: string) => {
     if (!db) return;
     const taskIndex = tasks.findIndex(t => t.id === id);
@@ -190,7 +194,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   }, [remoteChanges, db, notifyRemoteChange, setRemoteChanges, refreshTasks]);
 
   return (
-    <TaskContext.Provider value={{ tasks, taskTags, refreshTasks, refreshTaskTags, addTask, updateTask, deleteTask, toggleComplete }}>
+    <TaskContext.Provider value={{ tasks, taskTags, refreshTasks, refreshTaskTags, addTask, updateTask, deleteTask, toggleComplete, clearCompleted }}>
       {children}
     </TaskContext.Provider>
   );

@@ -24,7 +24,7 @@ import { useTasks } from './context/task/TaskHook'
 const TaskManager = () => {
   const { user, localUserId, signOut, status: authStatus, exit } = useAuth();
   const { remoteChanges, setRemoteChanges, notifyRemoteChange } = useSync();
-  const { tasks, taskTags, addTask, updateTask, deleteTask, toggleComplete, refreshTaskTags } = useTasks();
+  const { tasks, taskTags, addTask, updateTask, deleteTask, toggleComplete, clearCompleted, refreshTaskTags } = useTasks();
   const db = useDb();
   const [categories, setCategories] = useState<Tag[]>([])
   const [selectedTags, setSelectedTags] = useState<string[]>([])
@@ -196,14 +196,15 @@ const TaskManager = () => {
             </p>
           </div>
         </div>
-        <Dialog open={openNewTask} onOpenChange={setOpenNewTask}>
-          <DialogTrigger asChild>
-            <Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-6 py-2">
-              <Plus className="w-4 h-4 mr-2" />
-              Add
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+        <div className="flex items-center gap-2">
+          <Dialog open={openNewTask} onOpenChange={setOpenNewTask}>
+            <DialogTrigger asChild>
+              <Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-6 py-2">
+                <Plus className="w-4 h-4 mr-2" />
+                Add
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>New Task</DialogTitle>
             </DialogHeader>
@@ -264,8 +265,20 @@ const TaskManager = () => {
             >
               Save changes
             </Button>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+          <Button
+            variant="outline"
+            className="rounded-lg px-4 py-2 text-gray-600 hover:text-destructive"
+            disabled={tasks.every(t => t.is_completed !== 1)}
+            onClick={() => {
+              if (window.confirm('Delete all completed tasks?')) clearCompleted();
+            }}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Clear completed
+          </Button>
+        </div>
 
         <Dialog
           open={openModifyTaskForm}

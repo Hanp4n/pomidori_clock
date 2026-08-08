@@ -17,6 +17,7 @@ export interface TaskContextValue {
   updateTask: (id: string, input: NewTaskInput, tagIds?: string[]) => Promise<void>;
   deleteTask: (task: LocalTask) => Promise<void>;
   toggleComplete: (id: string) => Promise<void>;
+  clearCompleted: () => Promise<void>;
 }
 
 export const TaskContext = createContext<TaskContextValue | null>(null);
