@@ -84,7 +84,7 @@ export const updateTaskCategory = (taskCategory: Record<string, unknown>): SqlOp
   buildUpdateOperation('TaskCategory', taskCategory);
 
 export const deleteTaskCategory = (taskCategory: Record<string, unknown>): SqlOperation =>
-  buildSoftDeleteOperation('TaskCategory', taskCategory.id);
+  buildSoftDeleteOperation('TaskCategory', taskCategory.task_id, 'task_id');
 
 export const hardDeleteTaskCategory = (taskCategory: Record<string, unknown>): SqlOperation =>
   buildHardDeleteOperation('TaskCategory', taskCategory.task_id, 'task_id');
