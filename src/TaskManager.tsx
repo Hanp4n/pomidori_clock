@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import TagSelector from '@/components/tasks/TagSelector'
+import TagSelector, { type Tag } from '@/components/tasks/TagSelector'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth/AuthHook'
@@ -234,7 +234,7 @@ const TaskManager = () => {
                 <Input
                   id="pomodoros"
                   type="number"
-                  min="0"
+                  min="1"
                   value={newTaskForm.n_pomodoros}
                   onChange={(e) =>
                     setNewTaskForm({
@@ -251,6 +251,9 @@ const TaskManager = () => {
                   tags={categories}
                   selected={selectedTags}
                   onChange={setSelectedTags}
+                  onCreate={handleCreateCategory}
+                  onUpdate={handleUpdateCategory}
+                  onDelete={handleDeleteCategory}
                 />
               </div>
             </div>
@@ -305,7 +308,7 @@ const TaskManager = () => {
                 <Input
                   id="modify-pomodoros"
                   type="number"
-                  min="0"
+                  min="1"
                   value={modifyTaskForm.n_pomodoros}
                   onChange={(e) =>
                     setModifyTaskForm({
@@ -322,6 +325,9 @@ const TaskManager = () => {
                   tags={categories}
                   selected={modifyTaskTags}
                   onChange={setModifyTaskTags}
+                  onCreate={handleCreateCategory}
+                  onUpdate={handleUpdateCategory}
+                  onDelete={handleDeleteCategory}
                 />
               </div>
             </div>
