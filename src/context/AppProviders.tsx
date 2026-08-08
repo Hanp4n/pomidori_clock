@@ -2,6 +2,7 @@ import React from 'react'
 import AuthProvider from './auth/AuthProvider'
 import { ConnectivityProvider } from './connectivity/ConnectivityProvider'
 import { SyncProvider } from './sync/SyncProvider'
+import TaskProvider from './task/TaskProvider'
 import DbProvider from './db/DbProvider'
 
 const AppProviders = ({ children }: { children: React.ReactNode }) => {
@@ -10,7 +11,9 @@ const AppProviders = ({ children }: { children: React.ReactNode }) => {
       <AuthProvider>
         <ConnectivityProvider>
           <SyncProvider>
-            {children}
+            <TaskProvider>
+              {children}
+            </TaskProvider>
           </SyncProvider>
         </ConnectivityProvider>
       </AuthProvider>
