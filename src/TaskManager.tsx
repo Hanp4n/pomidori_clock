@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import TagSelector, { type Tag } from '@/components/tasks/TagSelector'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ArrowLeft, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChevronDown, ChevronUp, Plus, Trash2, Timer } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth/AuthHook'
 import type { LocalTask } from './db/schema.sqlite'
@@ -193,6 +193,10 @@ const TaskManager = () => {
             <Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-6 py-2" onClick={handleExit}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Exit
+            </Button>
+            <Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-6 py-2" onClick={() => navigate('/timer')}>
+              <Timer className="w-4 h-4 mr-2" />
+              Timer
             </Button>
             {
               authStatus !== 'guest' &&

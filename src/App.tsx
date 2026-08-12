@@ -4,6 +4,7 @@ import TaskManager from './TaskManager'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import OfflineLogin from './pages/auth/OfflineLogin'
+import PomodoroTimer from './PomodoroTimer';
 
 function App() {
 
@@ -16,6 +17,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/offline" element={<OfflineLogin />} />
           <Route path="/task" element={<TaskManager />} />
+          <Route path="/timer" element={<PomodoroTimer />} />
         </Routes>
       </HashRouter>
     </AppProviders>
