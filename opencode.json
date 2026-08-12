@@ -1,2 +1,13 @@
 {
-  "$schema": "https://opencode.ai/config.json", "plugin": ["@dietrichgebert/ponytail"] }
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "@dietrichgebert/ponytail",
+    "openpencil-skill@git+https://github.com/zseven-w/openpencil-skill.git"
+  ],
+  "mcp": {
+    "openpencil": {
+      "type": "remote",
+      "url": "http://127.0.0.1:3100/mcp"
+    }
+  }
+}
