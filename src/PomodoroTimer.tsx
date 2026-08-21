@@ -11,6 +11,7 @@ import { notifyLocalChange } from '@/context/sync/sync-bus'
 import { useTasks } from '@/context/task/TaskHook'
 import type { LocalPomodoroConfig, LocalTask } from './db/schema.sqlite'
 import { createPomodoroConfig } from './db/local-agnostic-operations'
+import finishedSound from '@/assets/audio/finished_pomodoro.mp3'
 
 type TimerMode = 'focus_time' | 'short_break_time' | 'long_break_time'
 
@@ -187,6 +188,7 @@ const PomodoroTimer = () => {
       setRemaining(prev => {
         if (prev <= 1) {
           if (intervalRef.current) clearInterval(intervalRef.current)
+          new Audio(finishedSound).play()
           const now = new Date().toISOString()
           logSession(now).then(() => advanceMode(mode))
           console.log("pomo session finished")
