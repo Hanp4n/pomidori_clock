@@ -20,6 +20,8 @@ const DEFAULT_TIMES: Record<TimerMode, number> = {
   long_break_time: 15 * 60,
 }
 
+const LONG_BREAK_COUNT = 4
+
 const CANVAS = 280
 const CENTER = CANVAS / 2
 const DECORATIVE_R = 130
@@ -142,26 +144,38 @@ const PomodoroTimer = () => {
     if (!db || !localUserId || !sessionStartRef.current) return
     const id = crypto.randomUUID()
     const duration = Math.round((new Date(endedAt).getTime() - new Date(sessionStartRef.current).getTime()) / 1000)
+    const modeValue = mode === 'focus_time' ? 'focus' : mode === 'short_break_time' ? 'short_break' : 'long_break'
+
     await db.execute(
       `INSERT INTO "PomodoroSession" ("id", "user_id", "task_id", "type", "duration", "started_at", "ended_at", "updated_at", "is_synced")
        VALUES ($1, $2, $3, $4, $5, $6, $7, $7, 0)`,
-      [id, localUserId, selectedTaskId, mode, duration, sessionStartRef.current, endedAt],
+      [id, localUserId, selectedTaskId, modeValue, duration, sessionStartRef.current, endedAt],
     )
-    console.log("saving pomo session")
     notifyLocalChange('PomodoroSession')
     sessionStartRef.current = null
   }, [db, localUserId, selectedTaskId, mode])
 
-  const advanceMode = useCallback((current: TimerMode) => {
+  const advanceMode = useCallback(async (current: TimerMode) => {
     if (!config) return
-    const next: TimerMode = current === 'focus_time' ? 'short_break_time' : 'focus_time'
+    let next: TimerMode = current === 'short_break_time' ? 'focus_time' : current === 'long_break_time' ? 'focus_time' : 'short_break_time'
+    if (current === 'focus_time' && db && localUserId) {
+      const rows = await db.select<{ n: number }[]>(
+        `SELECT COUNT(*) AS n FROM PomodoroSession
+         WHERE user_id=$1 AND type='focus'
+           AND started_at > COALESCE((SELECT MAX(started_at) FROM PomodoroSession
+                                      WHERE user_id=$1 AND type='long_break'), '')`,
+        [localUserId],
+      )
+      const n = rows[0]?.n ?? 0
+      next = n > 0 && n % LONG_BREAK_COUNT === 0 ? 'long_break_time' : 'short_break_time'
+    }
     setMode(next)
     setTotalSeconds(config[next] * 60)
     setRemaining(config[next] * 60)
     console.log("switching mode")
 
     setRunning(false)
-  }, [db, localUserId])
+  }, [config, db, localUserId])
 
   // Tick
   useEffect(() => {
@@ -276,6 +290,10 @@ const PomodoroTimer = () => {
                 fill="none"
                 stroke="url(#ring-gradient)"
                 strokeWidth={4}
+                style={{
+                  transformOrigin: `${CENTER}px ${CENTER}px`,
+                  animation: 'rotate-gradient 8s linear infinite',
+                }}
               />
               {/* Progress ring — shows time left */}
               <path
