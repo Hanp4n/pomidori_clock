@@ -11,7 +11,7 @@ import { notifyLocalChange } from '@/context/sync/sync-bus'
 import { useTasks } from '@/context/task/TaskHook'
 import type { LocalPomodoroConfig, LocalTask } from './db/schema.sqlite'
 import { createPomodoroConfig } from './db/local-agnostic-operations'
-import finishedSound from '@/assets/audio/finished_pomodoro.mp3'
+import finishedSound from '@/assets/audio/finished_pomodoro2.mp3'
 
 type TimerMode = 'focus_time' | 'short_break_time' | 'long_break_time'
 
@@ -21,6 +21,7 @@ const DEFAULT_TIMES: Record<TimerMode, number> = {
   long_break_time: 15 * 60,
 }
 
+// This should be added to the config table in the future, but for now it's hardcoded here.
 const LONG_BREAK_COUNT = 4
 
 const CANVAS = 280
@@ -38,7 +39,7 @@ const MODE_ICONS: Record<TimerMode, typeof IconBulb> = {
 const PomodoroTimer = () => {
   const { localUserId } = useAuth()
   const { remoteChanges, setRemoteChanges, notifyRemoteChange } = useSync()
-  const { tasks } = useTasks()
+  const { tasks, incrementTaskPomodoros } = useTasks()
   const db = useDb()
   const navigate = useNavigate()
 
@@ -153,8 +154,11 @@ const PomodoroTimer = () => {
       [id, localUserId, selectedTaskId, modeValue, duration, sessionStartRef.current, endedAt],
     )
     notifyLocalChange('PomodoroSession')
+    if (mode === 'focus_time' && selectedTaskId) {
+      await incrementTaskPomodoros(selectedTaskId)
+    }
     sessionStartRef.current = null
-  }, [db, localUserId, selectedTaskId, mode])
+  }, [db, localUserId, selectedTaskId, mode, incrementTaskPomodoros])
 
   const advanceMode = useCallback(async (current: TimerMode) => {
     if (!config) return
@@ -185,20 +189,20 @@ const PomodoroTimer = () => {
       return
     }
     intervalRef.current = setInterval(() => {
-      setRemaining(prev => {
-        if (prev <= 1) {
-          if (intervalRef.current) clearInterval(intervalRef.current)
-          new Audio(finishedSound).play()
-          const now = new Date().toISOString()
-          logSession(now).then(() => advanceMode(mode))
-          console.log("pomo session finished")
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
+      setRemaining(prev => Math.max(0, prev - 1))
+    }, 1)
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  }, [running, mode, logSession, advanceMode])
+  }, [running])
+
+  // Session expiry — runs once per commit where remaining hits 0 while running
+  useEffect(() => {
+    if (!running || remaining !== 0) return
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    new Audio(finishedSound).play()
+    console.log("pomo session finished")
+    const now = new Date().toISOString()
+    logSession(now).then(() => advanceMode(mode))
+  }, [remaining, running, mode, logSession, advanceMode])
 
   const handleModeChange = (next: string) => {
     if (!config) return;
@@ -352,13 +356,16 @@ const PomodoroTimer = () => {
               </>
             )}
           </Button>
-          <Button
-            variant="outline"
-            onClick={handleSkip}
-            className=" rounded-lg w-10 pr-2.5"
-          >
-            <IconPlayerSkipForward data-icon="inline-start" />
-          </Button>
+          {
+            running &&
+            <Button
+              variant="outline"
+              onClick={handleSkip}
+              className=" rounded-lg w-10 pr-2.5"
+            >
+              <IconPlayerSkipForward data-icon="inline-start" />
+            </Button>
+          }
         </div>
       </div>
     </div>

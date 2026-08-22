@@ -181,6 +181,30 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     notifyLocalChange("Task");
   }, [db, tasks]);
 
+  const incrementTaskPomodoros = useCallback(async (id: string) => {
+    if (!db) return;
+    const taskIndex = tasks.findIndex(t => t.id === id);
+    if (taskIndex === -1) return;
+
+    const completed = tasks[taskIndex].completed_pomodoros + 1;
+    const updated: LocalTask = {
+      ...tasks[taskIndex],
+      completed_pomodoros: completed,
+      is_completed: completed >= tasks[taskIndex].n_pomodoros ? 1 : tasks[taskIndex].is_completed,
+      updated_at: new Date().toISOString(),
+      is_synced: 0,
+    };
+
+    const { sql, values } = updateTaskOp(updated);
+    await db.execute(sql, values);
+
+    const newTasks = [...tasks];
+    newTasks[taskIndex] = updated;
+    setTasks(newTasks);
+
+    notifyLocalChange("Task");
+  }, [db, tasks]);
+
   useEffect(() => {
     if (authStatus === 'loading' || !db || !user) return;
     const load = async () => {
@@ -203,7 +227,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   }, [remoteChanges, db, notifyRemoteChange, setRemoteChanges, refreshTasks]);
 
   return (
-    <TaskContext.Provider value={{ tasks, taskTags, refreshTasks, refreshTaskTags, addTask, updateTask, deleteTask, toggleComplete, clearCompleted }}>
+    <TaskContext.Provider value={{ tasks, taskTags, refreshTasks, refreshTaskTags, addTask, updateTask, deleteTask, toggleComplete, clearCompleted, incrementTaskPomodoros }}>
       {children}
     </TaskContext.Provider>
   );

@@ -20,6 +20,7 @@ export interface TaskContextValue {
   deleteTask: (task: LocalTask) => Promise<void>;
   toggleComplete: (id: string) => Promise<void>;
   clearCompleted: () => Promise<void>;
+  incrementTaskPomodoros: (id: string) => Promise<void>;
 }
 
 export const TaskContext = createContext<TaskContextValue | null>(null);
