@@ -9,6 +9,7 @@ import { createUser } from '@/db/local-agnostic-operations';
 import { AuthApiError, AuthRetryableFetchError, AuthSessionMissingError } from '@supabase/supabase-js';
 import { saveSession, getSession, clearSession, getSessionKey } from './session-keychain';
 import { ReconnectDialog } from '@/components/auth/ReconnectDialog';
+import { pauseTimerSnapshot } from '@/components/dashboard/timer-snapshot';
 
 
 const GUEST_ID = '00000000-0000-0000-0000-000000000000';
@@ -150,6 +151,10 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error('No guest user found');
       }
 
+      // Persist like the SIGNED_IN listener does for online users, so the
+      // AppState-based restore picks the guest back up on next launch.
+      await db.execute(`UPDATE "AppState" SET active_user_id = $1 WHERE id = 1`, [guestUser.id]);
+
       setStatus('guest');
       setLocalUserId(guestUser.id);
       setUser(guestUser);
@@ -162,16 +167,19 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   async function signOut() {
     if (!user || !db) return;
+    const exitingUserId = localUserId;
     try {
+      pauseTimerSnapshot(exitingUserId);
       await supabase.auth.signOut();
 
-      await exit();
+      await exit(exitingUserId);
     } catch (err) {
       console.error('Sign out error:', err);
     }
   }
 
-  async function exit() {
+  async function exit(exitingUserId?: string) {
+    pauseTimerSnapshot(exitingUserId ?? localUserId);
     const db = await getDb();
     await db.execute(`UPDATE "AppState" SET active_user_id = NULL WHERE id = 1`);
     setUser(null);

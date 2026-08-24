@@ -35,6 +35,18 @@ export function readTimerSnapshot(userId: string | null): TimerSnapshot | null {
   } catch { return null }
 }
 
+export function pauseTimerSnapshot(userId: string | null): void {
+  const snapshot = readTimerSnapshot(userId)
+  if (!snapshot || !snapshot.running) return
+
+  writeTimerSnapshot(userId, {
+    mode: snapshot.mode,
+    remaining: restoredRemaining(snapshot),
+    running: false,
+    taskId: snapshot.taskId,
+  })
+}
+
 /** Remaining seconds after real time has passed since the snapshot was written. */
 export function restoredRemaining(
   s: Pick<TimerSnapshot, 'remaining' | 'running' | 'savedAt'>,
