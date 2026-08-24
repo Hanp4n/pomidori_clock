@@ -96,16 +96,29 @@ export function PomodoroConfigProvider({ children }: { children: React.ReactNode
   }, [db, authStatus, config]);
 
   useEffect(() => {
-    if (authStatus === 'loading' || !db || !user) return;
+    // Drop the previous account's row the moment auth leaves it behind —
+    // keeping it around leaked one user's config into the next session.
+    if (authStatus === 'loading' || !db || !user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setConfig(null);
+      return;
+    }
+    let cancelled = false;
     const load = async () => {
-      const fetched = await fetchConfig();
-      // ponytail: the provider owns row creation — no row means create it here
-      // so consumers never invent defaults of their own.
-      if (!fetched) await addConfig({});
-      else setConfig(fetched);
-      if (authStatus !== 'guest') sync();
+      try {
+        const fetched = await fetchConfig();
+        if (cancelled) return;
+        // ponytail: the provider owns row creation — no row means create it here
+        // so consumers never invent defaults of their own.
+        if (!fetched) await addConfig({});
+        else setConfig(fetched);
+        if (authStatus !== 'guest') sync();
+      } catch (err) {
+        console.error('Failed to load pomodoro config:', err);
+      }
     };
     load();
+    return () => { cancelled = true; };
   }, [db, user, authStatus, fetchConfig, addConfig, sync]);
 
   useEffect(() => {

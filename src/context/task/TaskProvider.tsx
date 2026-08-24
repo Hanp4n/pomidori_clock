@@ -204,12 +204,25 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   }, [db]);
 
   useEffect(() => {
-    if (authStatus === 'loading' || !db || !user) return;
+    // Drop the previous account's rows the moment auth leaves it behind.
+    if (authStatus === 'loading' || !db || !user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTasks([]);
+      setTaskTags({});
+      return;
+    }
+    let cancelled = false;
     const load = async () => {
-      await refreshTasks();
-      if (authStatus !== 'guest') sync();
+      try {
+        await refreshTasks();
+        if (cancelled) return;
+        if (authStatus !== 'guest') sync();
+      } catch (err) {
+        console.error('Failed to load tasks:', err);
+      }
     };
     load();
+    return () => { cancelled = true; };
   }, [db, user, authStatus, refreshTasks, sync]);
 
   useEffect(() => {

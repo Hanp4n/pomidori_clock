@@ -50,9 +50,19 @@ const Login = () => {
     }
   }
 
-  const handleGuest = () => {
-    signInAsAGuest();
-    navigate('/app', { replace: true })
+  const handleGuest = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      // Await before navigating — mounting the dashboard first would render
+      // the previous account's data while the guest session is still loading.
+      await signInAsAGuest()
+      navigate('/app', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sign in failed.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleSelectAccount = async () => {
@@ -173,6 +183,7 @@ const Login = () => {
               variant="secondary"
               className="w-full"
               onClick={handleGuest}
+              disabled={loading}
             >
               Continue as a guest
             </Button>
