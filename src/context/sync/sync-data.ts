@@ -4,6 +4,20 @@ import { getOperation } from "../../db/local-agnostic-operations";
 
 const db = getDb();
 
+// Timestamps arrive in three shapes: sqlite naive "YYYY-MM-DD HH:MM:SS",
+// JS ".000Z" and Postgres "+00:00" — raw string comparison ranks them
+// inconsistently, so parse before comparing. Naive strings are UTC by convention.
+function toMs(ts: string | null | undefined): number {
+  if (!ts) return 0;
+  const iso = /^\d{4}-\d{2}-\d{2} \d{2}:/.test(ts) ? `${ts.replace(" ", "T")}Z` : ts;
+  return Date.parse(iso) || 0;
+}
+
+/** true when `a` is strictly newer than `b`, format-independent */
+export function isNewer(a: string | null | undefined, b: string | null | undefined): boolean {
+  return toMs(a) > toMs(b);
+}
+
 export interface SyncableRegistry {
   id: string;
   updated_at: string;
@@ -84,10 +98,7 @@ export async function mergeAndUploadRegistries<
         .upsert(registry as any, { onConflict: mergeKey });
 
       const toUpsertRegistry = toUpsert.find((r) => r.id === registry.id);
-      if (
-        toUpsertRegistry &&
-        registry.updated_at > toUpsertRegistry.updated_at
-      ) {
+      if (toUpsertRegistry && isNewer(registry.updated_at, toUpsertRegistry.updated_at)) {
         // console.log(
         //   `Registry ${registry.id} in ${tableName} was updated on the server. Updating local registry to match server.`,
         // );
@@ -102,11 +113,19 @@ export async function mergeAndUploadRegistries<
         throw new Error(`Error uploading ${tableName} to supabase:`, error);
     }
 
-    // 4. Flag all the merged registries as synced
+    // 4. Flag the uploaded registries as synced — but only if unchanged since the
+    // snapshot we uploaded, so an edit landing mid-push stays is_synced = 0 and
+    // rides the next push instead of being lost.
+    const snapshotById = new Map(toUpsert.map((r) => [r.id, r]));
     for (const registry of merged) {
+      const snapshot = snapshotById.get(registry.id);
+      if (!snapshot) continue;
+      // TaskCategory has no updated_at column (immutable link table)
       await conn.execute(
-        `UPDATE "${tableName}" SET is_synced = 1 WHERE id = $1`,
-        [registry.id],
+        tableName === 'TaskCategory'
+          ? `UPDATE "${tableName}" SET is_synced = 1 WHERE id = $1`
+          : `UPDATE "${tableName}" SET is_synced = 1 WHERE id = $1 AND updated_at = $2`,
+        tableName === 'TaskCategory' ? [snapshot.id] : [snapshot.id, snapshot.updated_at],
       );
     }
   }
@@ -174,19 +193,9 @@ async function mergeRegistries<T extends SyncableRegistry>(
 
     const localUpdated = localRegistry.updated_at;
     const onlineUpdated = onlineRegistry.updated_at;
-    // console.log(
-    //   "Comparing timestamps for registry with key ",
-    //   key,
-    //   "Local: ",
-    //   localUpdated,
-    //   " Online: ",
-    //   onlineUpdated,
-    //   ".\n",
-    //   onlineUpdated > localUpdated ? "Online is newer" : "Local is newer",
-    // );
 
     // If an online registry demonstrates being newer, then is replaced
-    if (onlineUpdated > localUpdated) {
+    if (isNewer(onlineUpdated, localUpdated)) {
       merged.set(key, onlineRegistry);
     }
   }
