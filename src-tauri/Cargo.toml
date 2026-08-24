@@ -28,3 +28,5 @@ tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-os = "2.3.2"
 tauri-plugin-connectivity = { git = "https://github.com/silvermine/tauri-plugin-connectivity" }
 tauri-plugin-keyring = "0.1"
+tauri-plugin-notification = "2.3.3"
+tauri-plugin-shell = "2"

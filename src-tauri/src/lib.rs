@@ -40,8 +40,10 @@ pub fn run() {
                 .add_migrations("sqlite:pomidori_clock_local.db", migrations)
                 .build(),
         )
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_keyring::init())
         .plugin(tauri_plugin_connectivity::init())
+        .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(

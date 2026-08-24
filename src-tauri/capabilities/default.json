@@ -10,6 +10,13 @@
     "sql:default",
     "sql:allow-execute",
     "connectivity:default",
-    "keyring:default"
+    "keyring:default",
+    "notification:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        { "name": "notify-send", "cmd": "notify-send", "args": true }
+      ]
+    }
   ]
 }
