@@ -4,7 +4,10 @@ An offline-first Pomodoro task tracker built as a desktop app with **Tauri v2**,
 
 ## Features
 
-- **Task management** — create, edit, and soft-delete tasks with estimated pomodoro counts (`src/Test2.tsx`).
+- **Pomodoro timer** — focus / short break / long break cycles with configurable durations, auto-start options, and native OS notifications when a phase ends (`src/components/dashboard/PomodoroCard.tsx`).
+- **Task management** — create, edit, complete, and soft-delete tasks with estimated pomodoro counts and category tags (`src/context/task/`, `src/components/dashboard/TasksPanel.tsx`).
+- **Timer configuration** — per-user focus/break durations, long-break interval, auto-start and sound toggles (`src/context/pomodoro-config/`, `src/components/dashboard/PomodoroSettingsForm.tsx`).
+- **Session metrics** — estimates remaining work time and projected finish time from unfinished tasks and the current config (`src/components/dashboard/MetricsStrip.tsx`).
 - **Offline-first storage** — every syncable table is mirrored in a local SQLite database (`pomidori_clock_local.db`) via `@tauri-apps/plugin-sql`.
 - **Bi-directional sync** with Supabase:
   - Pulls on a 5-minute interval, on connectivity regain, and in real time via `postgres_changes` subscriptions.
@@ -27,19 +30,27 @@ An offline-first Pomodoro task tracker built as a desktop app with **Tauri v2**,
 
 ```
 src/
-├── components/        # shadcn/ui primitives + shared components
+├── components/
+│   ├── auth/            # ReconnectDialog
+│   ├── dashboard/       # PomodoroCard, TasksPanel, MetricsStrip, PomodoroSettingsForm, AppNavbar
+│   ├── tasks/           # TagSelector
+│   └── ui/              # shadcn/ui primitives
 ├── context/
-│   ├── auth/          # Supabase auth, keychain session, guest/offline login
-│   ├── connectivity/  # online/offline detection
-│   ├── db/            # local DB provider & hooks
-│   └── sync/          # sync bus, mappers, pull/push logic
+│   ├── auth/            # Supabase auth, keychain session, guest/offline login
+│   ├── connectivity/    # online/offline detection
+│   ├── db/              # local DB provider & hooks
+│   ├── pomodoro-config/ # timer configuration provider & hooks
+│   ├── sync/            # sync bus, mappers, pull/push logic
+│   └── task/            # task CRUD provider & hooks
 ├── db/
-│   ├── migrations/sqlite/  # local schema migrations
-│   ├── schema.sqlite.ts    # local row types
-│   ├── schema.postgres.ts  # remote row types
-│   └── supabase.ts         # Supabase client
-├── pages/auth/        # Login, Register, OfflineLogin
-└── Test2.tsx          # current task screen
+│   ├── migrations/sqlite/       # local schema migrations
+│   ├── local-agnostic-operations.ts  # SQL builders per table/operation
+│   ├── schema.sqlite.ts         # local row types
+│   ├── schema.postgres.ts       # remote row types
+│   └── supabase.ts              # Supabase client
+└── pages/
+    ├── Dashboard.tsx    # main app screen (timer + tasks + metrics)
+    └── auth/            # Login, Register, OfflineLogin
 ```
 
 ### Sync design
