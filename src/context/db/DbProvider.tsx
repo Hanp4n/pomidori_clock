@@ -8,11 +8,11 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
     const [instance, setInstance] = useState<Database | null>(null)
 
     useEffect(() => {
-      const initializeDatabase = async() => {
-        const db = await getDb();
-        setInstance(db);
-      }
-      initializeDatabase();
+      getDb()
+        .then(setInstance)
+        .catch((err) =>
+          console.error('Local database failed to initialize — every DB-backed action will be silently skipped:', err)
+        );
     }, []);
 
     return (
