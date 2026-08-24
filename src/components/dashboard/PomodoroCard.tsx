@@ -75,7 +75,7 @@ interface PomodoroCardProps {
 }
 
 const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemaining }: PomodoroCardProps) => {
-  const { localUserId } = useAuth()
+  const { localUserId, status: authStatus } = useAuth()
   const { tasks, incrementTaskPomodoros } = useTasks()
   const db = useDb()
   const { config } = usePomodoroConfig()
@@ -276,7 +276,7 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
       </div>
 
       {/* Timer ring */}
-      <div className="mb-6 flex justify-center">
+      <div className="mb-4 flex justify-center">
         <div className="relative" style={{ width: CANVAS, height: CANVAS }}>
           <svg width={CANVAS} height={CANVAS}>
             <defs>
@@ -320,11 +320,8 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
       </div>
 
       {/* Selected task */}
-      <div className="mb-5 text-center">
-        <p className={`text-sm font-medium ${selectedTask ? 'text-foreground' : 'text-muted-foreground'}`}>
-          {selectedTask ? selectedTask.title : 'No task selected'}
-        </p>
-        {tasks.length > 0 && (
+      <div className="mb-5 text-center">  
+        { (
           <Select value={activeSelectedTaskId ?? ''} onValueChange={v => setSelectedTaskId(v || null)}>
             <SelectTrigger className="mx-auto mt-2 h-8 max-w-[240px]" aria-label="Select a task">
               <SelectValue placeholder="Select a task" />
