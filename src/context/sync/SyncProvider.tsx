@@ -119,6 +119,13 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
               // don't resurrect a link the user removed while this pull was in flight
               sqlOperation.sql += ' AND "deleted_at" IS NULL';
             }
+            if (operationType === 'UPDATE') {
+              // Only apply the remote row if the local row is unchanged since this
+              // pull read it — exact match, immune to timestamp format drift. An edit
+              // landing mid-pull keeps is_synced = 0 and wins the next push.
+              sqlOperation.values.push(local!.updated_at);
+              sqlOperation.sql += ` AND "updated_at" = $${sqlOperation.values.length}`;
+            }
             await db.execute(sqlOperation.sql, [...sqlOperation.values]).catch(err => {
               console.error("Error pulling ", registry, ":", err)
             })
