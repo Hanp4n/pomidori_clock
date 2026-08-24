@@ -184,28 +184,24 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   }, [db, tasks]);
 
   const incrementTaskPomodoros = useCallback(async (id: string) => {
-    if (!db) return;
-    const taskIndex = tasks.findIndex(t => t.id === id);
-    if (taskIndex === -1) return;
+    if (!db) { console.error('incrementTaskPomodoros skipped: db unavailable'); return; }
 
-    const completed = tasks[taskIndex].completed_pomodoros + 1;
-    const updated: LocalTask = {
-      ...tasks[taskIndex],
-      completed_pomodoros: completed,
-      is_completed: completed >= tasks[taskIndex].n_pomodoros ? 1 : tasks[taskIndex].is_completed,
-      updated_at: new Date().toISOString(),
-      is_synced: 0,
-    };
-
-    const { sql, values } = updateTaskOp(updated);
-    await db.execute(sql, values);
-
-    const newTasks = [...tasks];
-    newTasks[taskIndex] = updated;
-    setTasks(newTasks);
+    // Atomic in SQL — computing +1 from React state collapses overlapping calls.
+    await db.execute(
+      `UPDATE "Task"
+       SET completed_pomodoros = completed_pomodoros + 1,
+           is_completed = CASE WHEN completed_pomodoros + 1 >= n_pomodoros THEN 1 ELSE is_completed END,
+           updated_at = $1,
+           is_synced = 0
+       WHERE id = $2`,
+      [new Date().toISOString(), id],
+    );
 
     notifyLocalChange("Task");
-  }, [db, tasks]);
+
+    const rows = await db.select<LocalTask[]>(`SELECT ${TASK_COLUMNS} FROM Task WHERE id = $1`, [id]);
+    if (rows[0]) setTasks(prev => prev.map(t => (t.id === id ? rows[0] : t)));
+  }, [db]);
 
   useEffect(() => {
     if (authStatus === 'loading' || !db || !user) return;
