@@ -1,7 +1,7 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useIsOnline } from '../connectivity/ConnectivityHook';
 import { useAuth } from '../auth/AuthHook';
-import { downloadOnlineRegistries, mergeAndUploadRegistries, mergeOnlineWithLocal, reconcileDeletions } from '@/context/sync/sync-data';
+import { downloadOnlineRegistries, mergeAndUploadRegistries, mergeOnlineWithLocal, reconcileDeletions, isNewer } from '@/context/sync/sync-data';
 import { useDb } from '../db/DbHook';
 import { getMapper } from '@/context/sync/sync-mappers';
 import { onLocalChange } from '@/context/sync/sync-bus';
@@ -28,7 +28,7 @@ const scheduleRetry = (kind: 'pull' | 'push', tables: string[]) => {
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
   const isOnline = useIsOnline();
-  const { status: authStatus, localUserId, user, setUser, setLocalUserId, refreshSession } = useAuth();
+  const { status: authStatus, localUserId, user, setUser, setLocalUserId, setStatus: setAuthStatus, refreshSession } = useAuth();
   const [status, setStatus] = useState<SyncStatus>('idle');
   const [remoteChanges, setRemoteChanges] = useState<RemoteChanges[]>([] as RemoteChanges[]);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
@@ -93,21 +93,27 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
           pullingQuery,
           [localUserId]
         );
-        const localIds = new Set(localRegistries.map((r) => r.id));
-
-        const newRemoteChanges: RemoteChanges[] = notifyRemoteChange(tableName, false)
 
         const onlineRegistries = await downloadOnlineRegistries(tableName);
 
         const reconciledLocal = await reconcileDeletions(tableName, localRegistries, onlineRegistries);
+        const localById = new Map(reconciledLocal.map((r) => [r.id, r]));
 
-        const newRegistries = await mergeOnlineWithLocal<any, any>(tableName, reconciledLocal, onlineRegistries, getMapper(tableName, 'remoteToLocal'));
+        const mergedRegistries = await mergeOnlineWithLocal<any, any>(tableName, reconciledLocal, onlineRegistries, getMapper(tableName, 'remoteToLocal'));
 
-        // console.log("pullFromRemote: New Registries", newRegistries);
+        // Only write rows that are actually missing locally or remotely newer —
+        // rewriting the whole table on every pull flooded the DB with thousands
+        // of no-op writes per sync.
+        const toWrite = mergedRegistries.filter((registry) => {
+          const local = localById.get(registry.id);
+          return !local || isNewer(registry.updated_at, local.updated_at);
+        });
+
         await Promise.all(
-          newRegistries.map(async (registry) => {
+          toWrite.map(async (registry) => {
             console.log("creating a new registry for", tableName)
-            const operationType: 'INSERT' | 'UPDATE' = localIds.has(registry.id) ? 'UPDATE' : 'INSERT';
+            const local = localById.get(registry.id);
+            const operationType: 'INSERT' | 'UPDATE' = local ? 'UPDATE' : 'INSERT';
             const sqlOperation = getOperation(tableName, operationType)(registry);
             if (tableName === 'TaskCategory' && operationType === 'UPDATE') {
               // don't resurrect a link the user removed while this pull was in flight
@@ -119,7 +125,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
 
           })
         );
-        setRemoteChanges([...newRemoteChanges])
+        setRemoteChanges(notifyRemoteChange(tableName, false))
       }));
 
       setLastSyncedAt(new Date());
@@ -212,6 +218,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         { event: '*', schema: 'pomidori_clock', table, filter: table === 'TaskCategory' ? undefined : `user_id=eq.${localUserId}` },
         async () => {
           console.log("Detected changes in Supabase for " + table)
+          
           await pullFromRemote([table])
         }
       );
