@@ -12,14 +12,18 @@ import type { LocalUser } from '@/db/schema.sqlite';
 
 const ALL_TABLES = ['Task', 'Category', 'TaskCategory', 'PomodoroConfig', 'PomodoroSession'];
 
-type BackupTableList = {
-  tables: string[],
-  state: boolean
-}
+// Retry scheduling lives here so a failing pull/push re-runs itself at most
+// once per tick — the old status-effect version rescheduled on every
+// setStatus transition and piled up overlapping full-table pulls.
+const retryTimers: { pull?: ReturnType<typeof setTimeout>, push?: ReturnType<typeof setTimeout> } = {};
+const retryRegistry: { pull?: (tables: string[]) => Promise<void>, push?: (tables: string[]) => Promise<void> } = {};
 
-const INIT_BACKUP = {
-  tables: [],
-  state: false
+const scheduleRetry = (kind: 'pull' | 'push', tables: string[]) => {
+  if (retryTimers[kind]) return;
+  retryTimers[kind] = setTimeout(() => {
+    retryTimers[kind] = undefined;
+    retryRegistry[kind]?.(tables);
+  }, 1000);
 }
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
@@ -28,8 +32,6 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<SyncStatus>('idle');
   const [remoteChanges, setRemoteChanges] = useState<RemoteChanges[]>([] as RemoteChanges[]);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
-  const pullAgain = useRef<BackupTableList>(INIT_BACKUP);
-  const pushAgain = useRef<BackupTableList>(INIT_BACKUP);
   const db = useDb();
 
   const pushTables = useCallback(async (tables: string[] = ALL_TABLES) => {
@@ -60,8 +62,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       setStatus('error');
       console.error("Error pushing: ", err)
-      pushAgain.current.state = true;
-      pushAgain.current.tables = tables;
+      scheduleRetry('push', tables);
     }
   }, [db, isOnline, authStatus, localUserId]);
 
@@ -126,11 +127,17 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       setStatus('error')
       console.error("Error pulling: ", err);
-      pullAgain.current.state = true;
-      pullAgain.current.tables = tables;
+      scheduleRetry('pull', tables);
     }
 
   }, [db, isOnline, authStatus, localUserId]);
+
+  // Keep latest pull/push available to scheduleRetry (set in an effect so the
+  // catch blocks never reference the callbacks before their declaration).
+  useEffect(() => {
+    retryRegistry.pull = pullFromRemote;
+    retryRegistry.push = pushTables;
+  }, [pullFromRemote, pushTables]);
 
   const sync = useCallback(async () => {
     // console.log("sync: starting sync process")
@@ -236,7 +243,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         if (tables.find(t => t === "Task")) console.log("Pushin Task rows...")
         pendingTables.clear();
         await pushTables(tables);
-      }, 1000);
+      }, 2000);
     });
 
     return () => { unsubscribe(); clearTimeout(timeout); };
@@ -258,32 +265,6 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     refreshSession();
 
   }, [isOnline, authStatus, user]);
-
-  useEffect(() => {
-    if (!pullAgain.current) return;
-    const pullingAgain = async () => {
-      setTimeout(async () => {
-        console.log("Pulling again...")
-        await pullFromRemote(pullAgain.current.tables)
-      }, 1000)
-    }
-
-    pullingAgain();
-    pullAgain.current = INIT_BACKUP;
-  }, [status, setStatus, pullFromRemote])
-
-  useEffect(() => {
-    if (!pushAgain.current) return;
-    const pushingAgain = async () => {
-      setTimeout(async () => {
-        console.log("Pushing again...")
-        await pushTables(pushAgain.current.tables)
-      }, 1000)
-    }
-
-    pushingAgain();
-    pushAgain.current = INIT_BACKUP;
-  }, [status, setStatus, pushTables])
 
 
   return (
