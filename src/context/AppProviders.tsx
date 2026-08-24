@@ -3,6 +3,7 @@ import AuthProvider from './auth/AuthProvider'
 import { ConnectivityProvider } from './connectivity/ConnectivityProvider'
 import { SyncProvider } from './sync/SyncProvider'
 import TaskProvider from './task/TaskProvider'
+import PomodoroConfigProvider from './pomodoro-config/PomodoroConfigProvider'
 import DbProvider from './db/DbProvider'
 
 const AppProviders = ({ children }: { children: React.ReactNode }) => {
@@ -12,7 +13,9 @@ const AppProviders = ({ children }: { children: React.ReactNode }) => {
         <ConnectivityProvider>
           <SyncProvider>
             <TaskProvider>
-              {children}
+              <PomodoroConfigProvider>
+                {children}
+              </PomodoroConfigProvider>
             </TaskProvider>
           </SyncProvider>
         </ConnectivityProvider>
