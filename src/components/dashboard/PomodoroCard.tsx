@@ -75,7 +75,7 @@ interface PomodoroCardProps {
 }
 
 const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemaining }: PomodoroCardProps) => {
-  const { localUserId, status: authStatus } = useAuth()
+  const { localUserId } = useAuth()
   const { tasks, incrementTaskPomodoros } = useTasks()
   const db = useDb()
   const { config } = usePomodoroConfig()
