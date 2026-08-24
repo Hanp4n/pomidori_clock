@@ -1,0 +1,43 @@
+name: Build app
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            bundle: nsis
+          - os: macos-latest
+            bundle: dmg
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Tauri app
+        run: npm run tauri build -- --bundles ${{ matrix.bundle }}
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pomidori-clock-${{ matrix.os }}
+          path: |
+            src-tauri/target/release/bundle/
