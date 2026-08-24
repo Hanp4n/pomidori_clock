@@ -1,10 +1,9 @@
 import AppProviders from './context/AppProviders'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import TaskManager from './TaskManager'
+import Dashboard from './pages/Dashboard'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import OfflineLogin from './pages/auth/OfflineLogin'
-import PomodoroTimer from './PomodoroTimer';
 
 function App() {
 
@@ -16,8 +15,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/offline" element={<OfflineLogin />} />
-          <Route path="/task" element={<TaskManager />} />
-          <Route path="/timer" element={<PomodoroTimer />} />
+          <Route path="/app" element={<Dashboard />} />
         </Routes>
       </HashRouter>
     </AppProviders>
