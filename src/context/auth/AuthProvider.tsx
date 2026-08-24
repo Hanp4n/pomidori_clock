@@ -5,7 +5,7 @@ import { getDb } from '@/db/db';
 import type { AuthContextValue, AuthStatus } from './AuthContext';
 import { AuthContext } from './AuthContext';
 import { useDb } from '../db/DbHook';
-import { createUser } from '@/db/local-agnostic-operations';
+import { createUser, updateUser } from '@/db/local-agnostic-operations';
 import { AuthApiError, AuthRetryableFetchError, AuthSessionMissingError } from '@supabase/supabase-js';
 import { saveSession, getSession, clearSession, getSessionKey } from './session-keychain';
 import { ReconnectDialog } from '@/components/auth/ReconnectDialog';
@@ -74,6 +74,57 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     throw new Error('The user was created in Auth, but no matching row was found in the remote User table yet.');
+  }
+
+  async function ensureLocalUser(remoteUser: LocalUser): Promise<LocalUser> {
+    if (!db) throw new Error('Local database is unavailable.');
+
+    const localById = (await db.select(
+      `SELECT ${USER_COLUMNS} FROM "User" WHERE id = $1 LIMIT 1`,
+      [remoteUser.id],
+    )) as LocalUser[];
+    const localByEmail = remoteUser.email
+      ? (await db.select(
+          `SELECT ${USER_COLUMNS} FROM "User" WHERE lower(email) = lower($1) LIMIT 1`,
+          [remoteUser.email],
+        )) as LocalUser[]
+      : [];
+
+    if (localById[0]) {
+      if (localByEmail[0] && localByEmail[0].id !== remoteUser.id) {
+        throw new Error('This email belongs to a different account already stored on this device.');
+      }
+
+      const reconciledUser: LocalUser = {
+        ...localById[0],
+        username: remoteUser.username,
+        email: remoteUser.email,
+        is_guest: 0,
+      };
+      const { sql, values } = updateUser({
+        id: reconciledUser.id,
+        username: reconciledUser.username,
+        email: reconciledUser.email,
+        is_guest: reconciledUser.is_guest,
+      });
+      await db.execute(sql, values);
+      return reconciledUser;
+    }
+
+    if (localByEmail[0]) {
+      throw new Error('This email belongs to a different account already stored on this device.');
+    }
+
+    const newLocalUser: LocalUser = {
+      id: remoteUser.id,
+      username: remoteUser.username,
+      email: remoteUser.email,
+      is_guest: 0,
+      created_at: remoteUser.created_at,
+    };
+    const { sql, values } = createUser(newLocalUser);
+    await db.execute(sql, values);
+    return newLocalUser;
   }
 
   async function signInOnline(email: string, password: string) {
@@ -212,17 +263,10 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       const data = await waitForRemoteUser(authData.user.id);
-
-      const newLocalUser: LocalUser = {
-        id: data.id,
-        username: data.username,
-        email: data.email,
+      await ensureLocalUser({
+        ...data,
         is_guest: 0,
-        created_at: data.created_at,
-      }
-
-      const { sql, values } = createUser(newLocalUser);
-      await db.execute(sql, values);
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Sign up failed.';
       console.error('Online sign up error:', err);
