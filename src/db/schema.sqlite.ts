@@ -142,3 +142,17 @@ export type LocalAppState = {
   id: number;
   active_user_id: string | null;
 };
+
+export type LocalTimerState = {
+  id: string;
+  user_id: string;
+  mode: 'focus_time' | 'short_break_time' | 'long_break_time';
+  remaining: number;
+  running: 1 | 0;
+  saved_at: string;
+  task_id: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  is_synced: 1 | 0;
+};

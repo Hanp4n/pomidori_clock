@@ -4,11 +4,13 @@ import type {
   LocalTaskCategory,
   LocalPomodoroConfig,
   LocalPomodoroSession,
+  LocalTimerState,
   RemoteTask,
   RemoteCategory,
   RemoteTaskCategory,
   RemotePomodoroConfig,
   RemotePomodoroSession,
+  RemoteTimerState,
 } from "@/db/db-types";
 
 // ============================================================
@@ -198,6 +200,40 @@ export function pomodoroSessionRemoteToLocal(
   };
 }
 
+// ============================================================
+// TimerState
+// ============================================================
+
+export function timerStateLocalToRemote(local: LocalTimerState): RemoteTimerState {
+  return {
+    id: local.id,
+    user_id: local.user_id,
+    mode: local.mode,
+    remaining: local.remaining,
+    running: Boolean(local.running),
+    saved_at: local.saved_at,
+    task_id: local.task_id ?? null,
+    created_at: local.created_at,
+    updated_at: local.updated_at,
+  };
+}
+
+export function timerStateRemoteToLocal(remote: RemoteTimerState): LocalTimerState {
+  return {
+    id: remote.id,
+    user_id: remote.user_id,
+    mode: remote.mode,
+    remaining: remote.remaining,
+    running: remote.running ? 1 : 0,
+    saved_at: remote.saved_at,
+    task_id: remote.task_id ?? null,
+    created_at: remote.created_at,
+    updated_at: remote.updated_at,
+    deleted_at: null,
+    is_synced: 1,
+  };
+}
+
 type Direction = "localToRemote" | "remoteToLocal";
 
 export function getMapper(table: string, direction: Direction) {
@@ -222,6 +258,10 @@ export function getMapper(table: string, direction: Direction) {
       return direction === "localToRemote"
         ? pomodoroSessionLocalToRemote
         : pomodoroSessionRemoteToLocal;
+    case "TimerState":
+      return direction === "localToRemote"
+        ? timerStateLocalToRemote
+        : timerStateRemoteToLocal;
     default:
       throw new Error(`Unknown table mapper for ${table}`);
   }

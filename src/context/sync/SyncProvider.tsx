@@ -10,7 +10,7 @@ import { supabase } from '@/db/supabase';
 import { SyncContext, type RemoteChanges, type SyncStatus } from './SyncContext';
 import type { LocalUser } from '@/db/schema.sqlite';
 
-const ALL_TABLES = ['Task', 'Category', 'TaskCategory', 'PomodoroConfig', 'PomodoroSession'];
+const ALL_TABLES = ['Task', 'Category', 'TaskCategory', 'PomodoroConfig', 'PomodoroSession', 'TimerState'];
 
 // Retry scheduling lives here so a failing pull/push re-runs itself at most
 // once per tick — the old status-effect version rescheduled on every

@@ -128,4 +128,26 @@ export type NewRemoteFriend = {
   user_id: string;
   friend_id: string;
 };
+export type RemoteTimerState = {
+  id: string;
+  user_id: string;
+  mode: 'focus_time' | 'short_break_time' | 'long_break_time';
+  remaining: number;
+  running: boolean;
+  saved_at: string;
+  task_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+export type NewRemoteTimerState = {
+  id?: string;
+  user_id: string;
+  mode: 'focus_time' | 'short_break_time' | 'long_break_time';
+  remaining: number;
+  running: boolean;
+  saved_at: string;
+  task_id?: string | null;
+  created_at: string;
+  updated_at: string;
+};
 

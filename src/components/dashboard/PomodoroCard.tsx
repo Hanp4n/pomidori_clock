@@ -8,6 +8,7 @@ import { Command } from '@tauri-apps/plugin-shell'
 import { useAuth } from '@/context/auth/AuthHook'
 import { useDb } from '@/context/db/DbHook'
 import { notifyLocalChange } from '@/context/sync/sync-bus'
+import { useSync } from '@/context/sync/SyncHook'
 import { useTasks } from '@/context/task/TaskHook'
 import { usePomodoroConfig } from '@/context/pomodoro-config/PomodoroConfigHook'
 import type { LocalPomodoroConfig, LocalTask } from '@/db/schema.sqlite'
@@ -79,6 +80,7 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
   const { tasks, incrementTaskPomodoros } = useTasks()
   const db = useDb()
   const { config } = usePomodoroConfig()
+  const { remoteChanges, setRemoteChanges, notifyRemoteChange } = useSync()
 
   const [totalSeconds, setTotalSeconds] = useState(DEFAULT_TIMES.focus_time)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
@@ -94,18 +96,43 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
     tasks.find(t => t.id === selectedTaskId && t.is_completed !== 1)
   const activeSelectedTaskId = selectedTask?.id ?? null
 
-  // Applies an interrupted-session snapshot to the clock (see config effect below).
+  // Applies a timer snapshot to the clock — used both for restoring an
+  // interrupted session on startup and for applying another device's
+  // transition (start/pause/skip) pulled in by the sync pipeline.
   const applyRestoredSnapshot = useCallback((saved: TimerSnapshot) => {
-    setMode(saved.mode)
     if (!config) return
+    const remainingNow = restoredRemaining(saved)
+    setMode(saved.mode)
     setTotalSeconds(config[saved.mode] * 60)
-    setRemaining(restoredRemaining(saved))
+    setRemaining(remainingNow)
     setSelectedTaskId(saved.taskId)
     if (saved.running) {
       sessionStartRef.current = new Date(saved.savedAt).toISOString()
       setRunning(true)
+    } else {
+      // also covers a pause that happened on another device
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      sessionStartRef.current = null
+      setRunning(false)
     }
-  }, [config, setRunning, setMode, setRemaining])
+    // keep the localStorage mirror in step so a restart resumes from synced state
+    writeTimerSnapshot(localUserId, { mode: saved.mode, remaining: remainingNow, running: saved.running, taskId: saved.taskId })
+  }, [config, localUserId, setRunning, setMode, setRemaining])
+
+  // Mirrors each snapshot into the synced TimerState row (id = userId:
+  // exactly one per user). The push debounce + realtime channel take it
+  // from there; countdowns are derived locally from saved_at on each device.
+  const saveTimerState = useCallback((snap: Omit<TimerSnapshot, 'savedAt'>) => {
+    if (!db || !localUserId) return
+    const nowIso = new Date().toISOString()
+    db.execute(
+      `INSERT INTO "TimerState" ("id", "user_id", "mode", "remaining", "running", "saved_at", "task_id", "created_at", "updated_at", "is_synced")
+       VALUES ($1, $1, $2, $3, $4, $5, $6, $5, $5, 0)
+       ON CONFLICT("id") DO UPDATE SET
+         "mode" = $2, "remaining" = $3, "running" = $4, "saved_at" = $5, "task_id" = $6, "updated_at" = $5, "is_synced" = 0`,
+      [localUserId, snap.mode, snap.remaining, snap.running ? 1 : 0, nowIso, snap.taskId],
+    ).then(() => notifyLocalChange('TimerState')).catch(console.error)
+  }, [db, localUserId])
 
   // Config changes (saved here or synced from another device) reset the displayed
   // clock to the *current mode's* duration — never hardcode focus_time, and never
@@ -147,6 +174,42 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
     ).then(rows => { focusStreakRef.current = rows[0]?.n ?? 0 }).catch(console.error)
   }, [db, localUserId])
 
+  // Another device moved the timer: the pull already landed the newer row in
+  // SQLite, so applying it is just reading it back through the same snapshot
+  // path as a startup restore.
+  // ponytail: if both devices run timers simultaneously both will expire and
+  // each logs its own PomodoroSession — fine for single-user use; needs leader
+  // election if that ever matters.
+  useEffect(() => {
+    const rc = remoteChanges.find(c => c.table === 'TimerState') ?? null
+    if (!rc || rc.remoteSynced || !db || !config || !localUserId) return
+
+    const applyRemoteTimer = async () => {
+      setRemoteChanges(notifyRemoteChange('TimerState', true))
+      const rows = await db.select<Array<{
+        mode: TimerMode
+        remaining: number
+        running: 1 | 0
+        saved_at: string
+        task_id: string | null
+      }>>(
+        'SELECT mode, remaining, running, saved_at, task_id FROM TimerState WHERE user_id = $1 LIMIT 1',
+        [localUserId],
+      ).catch(err => { console.error('Failed reading TimerState:', err); return [] })
+      const s = rows[0]
+      if (!s) return
+      applyRestoredSnapshot({
+        mode: s.mode,
+        remaining: s.remaining,
+        running: !!s.running,
+        savedAt: Date.parse(s.saved_at),
+        taskId: s.task_id,
+      })
+    }
+
+    applyRemoteTimer()
+  }, [remoteChanges, db, config, localUserId, notifyRemoteChange, setRemoteChanges, applyRestoredSnapshot])
+
   // Background writer only — fire-and-forget, never blocks the mode transition.
   const logSession = useCallback((type: 'focus' | 'short_break' | 'long_break', startedAt: string) => {
     if (!db || !localUserId) return
@@ -187,7 +250,8 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
     setRemaining(config[next] * 60)
     setRunning(false)
     writeTimerSnapshot(localUserId, { mode: next, remaining: config[next] * 60, running: false, taskId: activeSelectedTaskId })
-  }, [config, mode, logSession, setRunning, setMode, setRemaining, localUserId, activeSelectedTaskId])
+    saveTimerState({ mode: next, remaining: config[next] * 60, running: false, taskId: activeSelectedTaskId })
+  }, [config, mode, logSession, setRunning, setMode, setRemaining, localUserId, activeSelectedTaskId, saveTimerState])
 
   // Tick
   useEffect(() => {
@@ -222,6 +286,7 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
       setTotalSeconds(config[m] * 60)
       setRemaining(config[m] * 60)
       writeTimerSnapshot(localUserId, { mode: m, remaining: config[m] * 60, running: false, taskId: activeSelectedTaskId })
+      saveTimerState({ mode: m, remaining: config[m] * 60, running: false, taskId: activeSelectedTaskId })
     }
   }
 
@@ -230,10 +295,12 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
       sessionStartRef.current = new Date().toISOString()
       setRunning(true)
       writeTimerSnapshot(localUserId, { mode, remaining, running: true, taskId: activeSelectedTaskId })
+      saveTimerState({ mode, remaining, running: true, taskId: activeSelectedTaskId })
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current)
       setRunning(false)
       writeTimerSnapshot(localUserId, { mode, remaining, running: false, taskId: activeSelectedTaskId })
+      saveTimerState({ mode, remaining, running: false, taskId: activeSelectedTaskId })
     }
   }
 

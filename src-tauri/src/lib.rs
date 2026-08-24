@@ -45,6 +45,12 @@ pub fn run() {
             sql: include_str!("../../src/db/migrations/sqlite/pomidori_clock_local_v7.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 8,
+            description: "add_timer_state_table",
+            sql: include_str!("../../src/db/migrations/sqlite/pomidori_clock_local_v8.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
     //println!("Running Tauri application with SQL migrations...");
     tauri::Builder::default()

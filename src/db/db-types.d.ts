@@ -11,6 +11,7 @@ export type {
   NewLocalCategory,
   LocalTaskCategory,
   NewLocalTaskCategory,
+  LocalTimerState,
 } from './schema.sqlite';
 
 export type {
@@ -30,4 +31,6 @@ export type {
   NewRemoteRequest,
   RemoteFriend,
   NewRemoteFriend,
+  RemoteTimerState,
+  NewRemoteTimerState,
 } from './schema.postgres';

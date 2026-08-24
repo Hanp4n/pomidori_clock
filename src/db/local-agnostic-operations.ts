@@ -137,6 +137,12 @@ export const deleteUser = (user: Record<string, unknown>): SqlOperation =>
 export const hardDeleteUser = (user: Record<string, unknown>): SqlOperation =>
   buildHardDeleteOperation('User', user.id);
 
+export const createTimerState = (state: Record<string, unknown>): SqlOperation =>
+  buildInsertOperation('TimerState', state);
+
+export const updateTimerState = (state: Record<string, unknown>): SqlOperation =>
+  buildUpdateOperation('TimerState', state);
+
 export type OperationType = 'INSERT' | 'UPDATE' |'SOFT_DELETE' | 'HARD_DELETE';
 
 export const getOperation = (
@@ -191,6 +197,15 @@ export const getOperation = (
         case 'UPDATE': return updateAppState;
         case 'SOFT_DELETE': return deleteAppState;
         case 'HARD_DELETE': return hardDeleteAppState;
+      }
+      break;
+    case 'TimerState':
+      switch (operation) {
+        case 'INSERT': return createTimerState;
+        case 'UPDATE': return updateTimerState;
+
+        case 'SOFT_DELETE':
+        case 'HARD_DELETE': throw new Error(`Unsupported operation ${operation} for table TimerState`);
       }
       break;
   }
