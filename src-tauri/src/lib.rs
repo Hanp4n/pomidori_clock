@@ -1,5 +1,6 @@
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 use tauri_plugin_sql::{Builder, Migration, MigrationKind};
+
 pub fn run() {
     let migrations = vec![
         Migration {
@@ -30,6 +31,18 @@ pub fn run() {
             version: 5,
             description: "unique_taskcategory_per_task_and_category",
             sql: include_str!("../../src/db/migrations/sqlite/pomidori_clock_local_v5.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 6,
+            description: "add_pomodoro_flow_config_columns",
+            sql: include_str!("../../src/db/migrations/sqlite/pomidori_clock_local_v6.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 7,
+            description: "add_sound_enabled_to_pomodoro_config",
+            sql: include_str!("../../src/db/migrations/sqlite/pomidori_clock_local_v7.sql"),
             kind: MigrationKind::Up,
         },
     ];
