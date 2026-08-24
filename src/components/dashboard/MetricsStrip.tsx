@@ -90,9 +90,9 @@ const MetricsStrip = ({ mode, remaining }: { mode?: TimerMode; remaining?: numbe
   const unfinished = tasks.filter(t => t.is_completed !== 1)
 
   const stats: { label: string; value: string; sub: string }[] = [
-    { label: 'Sessions left', value: String(sessions), sub: `${unfinished.length} unfinished tasks` },
-    { label: 'Finishing hour', value: finishHour, sub: `starting at ${startTime || '--:--'}` },
-    { label: 'Total length', value: formatLength(totalMinutes), sub: 'start to finish' },
+    { label: 'Sessions left', value: tasks.length > 0 ? String(sessions) : '...', sub: tasks.length > 0 ? `${unfinished.length} unfinished tasks` : 'No tasks' },
+    { label: 'Finishing hour', value: tasks.length > 0 ? finishHour : '...', sub: tasks.length > 0 ?  `starting at ${startTime || '--:--'}` : 'No tasks' },
+    { label: 'Total length', value: tasks.length > 0 ?  formatLength(totalMinutes) : '...', sub: tasks.length > 0 ?  'start to finish' : 'No tasks' },
   ]
 
   return (
