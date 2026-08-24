@@ -50,7 +50,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   // Stable ids + the unique index (migration v5) mean a sync pull can never create
   // a second row for the same (task, category), and no rows get orphaned remotely.
   const replaceTaskTags = useCallback(async (taskId: string, tagIds: string[]) => {
-    if (!db) return;
+    if (!db) { console.error('replaceTaskTags skipped: db unavailable'); return; }
     const now = new Date().toISOString();
     try {
       // ponytail: guests never sync, so soft deletes would pile up forever.
@@ -76,7 +76,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   }, [db, authStatus]);
 
   const addTask = useCallback(async (input: NewTaskInput, tagIds: string[] = []) => {
-    if (!db || !input.title.trim()) return;
+    if (!db) { console.error('addTask skipped: db unavailable'); return; }
+    if (!input.title.trim()) return;
 
     const task: LocalTask = {
       id: crypto.randomUUID(),
@@ -103,7 +104,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   }, [db, localUserId, tasks, replaceTaskTags, fetchTaskTags]);
 
   const updateTask = useCallback(async (id: string, input: NewTaskInput, tagIds?: string[]) => {
-    if (!db || !input.title.trim()) return;
+    if (!db) { console.error('updateTask skipped: db unavailable'); return; }
+    if (!input.title.trim()) return;
 
     const taskIndex = tasks.findIndex(t => t.id === id);
     if (taskIndex === -1) throw new Error("no task found");
@@ -140,7 +142,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   }, [db, tasks, replaceTaskTags, fetchTaskTags]);
 
   const deleteTask = useCallback(async (task: LocalTask) => {
-    if (!db) return;
+    if (!db) { console.error('deleteTask skipped: db unavailable'); return; }
     const deleteType: OperationType = authStatus === "guest" ? 'HARD_DELETE' : 'SOFT_DELETE';
 
     const { sql: linkSql, values: linkValues } = getOperation("TaskCategory", deleteType)({ task_id: task.id });
@@ -160,7 +162,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   }, [tasks, deleteTask]);
 
   const toggleComplete = useCallback(async (id: string) => {
-    if (!db) return;
+    if (!db) { console.error('toggleComplete skipped: db unavailable'); return; }
     const taskIndex = tasks.findIndex(t => t.id === id);
     if (taskIndex === -1) return;
 
