@@ -75,10 +75,8 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     throw new Error('The user was created in Auth, but no matching row was found in the remote User table yet.');
   }
 
-
-
   async function signInOnline(email: string, password: string) {
-    if (!db) { return; }
+    if (!db) { console.error('signInOnline skipped: db unavailable'); return; }
 
     try {
       if (!email) {
@@ -122,7 +120,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   async function signInOffline(email: string) {
-    if (!db) { return; }
+    if (!db) { console.error('signInOffline skipped: db unavailable'); return; }
 
     try {
       const users: LocalUser[] = await fetchUsers() ?? [];
@@ -143,7 +141,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   async function signInAsAGuest() {
-    if (!db) { return; }
+    if (!db) { console.error('signInAsAGuest skipped: db unavailable'); return; }
 
     try {
       const users: LocalUser[] = await fetchUsers() ?? [];
@@ -182,7 +180,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   async function signUpOnline(email: string, username: string, password: string = 'temporary-password') {
-    if (!db) { return; }
+    if (!db) { console.error('signUpOnline skipped: db unavailable'); return; }
     try {
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
