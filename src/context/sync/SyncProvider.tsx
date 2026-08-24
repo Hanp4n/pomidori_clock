@@ -201,6 +201,15 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
 
       setUser(user);
       setLocalUserId(userID);
+      // Restored users must leave 'loading' or the whole UI gates off.
+      // Guests have no keychain session; authenticated users start as
+      // 'pending' and refreshSession promotes them via SIGNED_IN (or the
+      // reconnect-on-reconnect effect if offline).
+      if (user.is_guest) {
+        setAuthStatus('guest');
+        return;
+      }
+      setAuthStatus('pending');
       await refreshSession(user);
     };
 
