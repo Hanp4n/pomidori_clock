@@ -104,6 +104,8 @@ const AppNavbar = ({ running = false }: AppNavbarProps) => {
 
         {/* Status & configuration */}
         <div className="ml-auto flex items-center gap-1">
+          {!user?.is_guest &&
+          
           <span
             className="mr-1 hidden h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-medium shadow-sm lg:flex"
             title={isOnline ? 'Connected to Supabase' : 'Working offline'}
@@ -112,6 +114,8 @@ const AppNavbar = ({ running = false }: AppNavbarProps) => {
             <Cloud className="size-3.5 text-muted-foreground" />
             {isOnline ? 'Online' : 'Offline'}
           </span>
+          
+          }
           <Button variant="ghost" size="icon" disabled title="Notifications coming later">
             <Bell />
           </Button>
