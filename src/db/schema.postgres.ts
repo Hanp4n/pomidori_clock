@@ -18,6 +18,10 @@ export type RemotePomodoroConfig = {
   long_break_time: number;
   created_at: string;
   updated_at: string;
+  long_break_count: number;
+  focus_auto: number;
+  break_auto: number;
+  sound_enabled: number;
 };
 export type NewRemotePomodoroConfig = {
   id?: string;
@@ -25,6 +29,10 @@ export type NewRemotePomodoroConfig = {
   focus_time: number;
   short_break_time: number;
   long_break_time: number;
+  long_break_count: number;
+  focus_auto: number;
+  break_auto: number;
+  sound_enabled: number;
   created_at: string;
   updated_at: string;
 };

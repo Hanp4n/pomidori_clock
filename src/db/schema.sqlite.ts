@@ -20,6 +20,10 @@ export type LocalPomodoroConfig = {
   focus_time: number;
   short_break_time: number;
   long_break_time: number;
+  long_break_count: number;
+  focus_auto: 1 | 0;
+  break_auto: 1 | 0;
+  sound_enabled: 1 | 0;
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
@@ -32,6 +36,10 @@ export type NewLocalPomodoroConfig = {
   focus_time?: number;
   short_break_time?: number;
   long_break_time?: number;
+  long_break_count?: number;
+  focus_auto?: 1 | 0;
+  break_auto?: 1 | 0;
+  sound_enabled?: 1 | 0;
   created_at?: string;
   updated_at?: string;
   deleted_at?: string | null;
