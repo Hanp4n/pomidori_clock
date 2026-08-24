@@ -133,6 +133,10 @@ export function pomodoroConfigLocalToRemote(
     focus_time: local.focus_time,
     short_break_time: local.short_break_time,
     long_break_time: local.long_break_time,
+    long_break_count: local.long_break_count,
+    focus_auto: local.focus_auto,
+    break_auto: local.break_auto,
+    sound_enabled: local.sound_enabled,
     created_at: local.created_at,
     updated_at: local.updated_at,
   };
@@ -147,6 +151,11 @@ export function pomodoroConfigRemoteToLocal(
     focus_time: remote.focus_time,
     short_break_time: remote.short_break_time,
     long_break_time: remote.long_break_time,
+    // local-only columns until the Supabase table gains them
+    long_break_count: remote.long_break_count,
+    focus_auto: remote.focus_auto ? 1 : 0,
+    break_auto: remote.break_auto ? 1 : 0,
+    sound_enabled: remote.sound_enabled ? 1 : 0,
     created_at: remote.created_at,
     updated_at: remote.updated_at,
     deleted_at: null, 
