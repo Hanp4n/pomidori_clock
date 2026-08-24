@@ -34,7 +34,7 @@ const OfflineLogin = () => {
 
   useEffect(() => {
     if (status === 'pending') {
-      navigate('/task', { replace: true })
+      navigate('/app', { replace: true })
     }
   }, [status, navigate])
 

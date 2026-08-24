@@ -42,7 +42,7 @@ const Login = () => {
       // }
       console.log("sign in...")
       await signInOnline(email.trim(), password)
-      navigate('/task', { replace: true })
+      navigate('/app', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed.')
     } finally {
@@ -52,7 +52,7 @@ const Login = () => {
 
   const handleGuest = () => {
     signInAsAGuest();
-    navigate('/task', { replace: true })
+    navigate('/app', { replace: true })
   }
 
   const handleSelectAccount = async () => {
@@ -73,7 +73,7 @@ const Login = () => {
       setUser(user);
       setLocalUserId(user.id);
       await refreshSession(user);
-      navigate('/task', { replace: true })
+      navigate('/app', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed.')
     } finally {
