@@ -13,5 +13,7 @@ CREATE TABLE IF NOT EXISTS "TimerState" (
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "deleted_at" TEXT,
-  "is_synced" INTEGER NOT NULL DEFAULT 0 CHECK ("is_synced" IN (0, 1))
+  "is_synced" INTEGER NOT NULL DEFAULT 0 CHECK ("is_synced" IN (0, 1)),
+  FOREIGN KEY ("user_id") REFERENCES "User" ("id"),
+  FOREIGN KEY ("task_id") REFERENCES "Task" ("id") ON DELETE CASCADE
 );
