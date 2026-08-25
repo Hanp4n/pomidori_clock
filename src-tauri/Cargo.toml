@@ -30,3 +30,9 @@ tauri-plugin-connectivity = { git = "https://github.com/silvermine/tauri-plugin-
 tauri-plugin-keyring = "0.1"
 tauri-plugin-notification = "2.3.3"
 tauri-plugin-shell = "2"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
