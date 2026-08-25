@@ -17,10 +17,6 @@ jobs:
             bundle: dmg
           - os: ubuntu-latest
             bundle: appimage
-          - os: fedora-latest
-            bundle: appimage
-          - os: debian-latest
-            bundle: appimage
 
     runs-on: ${{ matrix.os }}
 
