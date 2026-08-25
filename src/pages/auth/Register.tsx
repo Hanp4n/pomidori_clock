@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/context/auth/AuthHook'
-import loginImage from '@/assets/img/pomofocus_login_img.png'
+import loginImage from '@/assets/img/pomofocus_login_img.webp'
 
 const Register = () => {
   const navigate = useNavigate()

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/context/auth/AuthHook'
 import type { LocalUser } from '@/db/db-types'
-import loginImage from '@/assets/img/pomofocus_login_img.png'
+import loginImage from '@/assets/img/pomofocus_login_img.webp'
 import { useIsOnline } from '@/context/connectivity/ConnectivityHook'
 import {
   Dialog,

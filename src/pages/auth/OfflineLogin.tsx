@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/auth/AuthHook'
 import type { LocalUser } from '@/db/db-types'
-import loginImage from '@/assets/img/pomofocus_login_img.png'
+import loginImage from '@/assets/img/pomofocus_login_img.webp'
 import { useIsOnline } from '@/context/connectivity/ConnectivityHook'
 
 const OfflineLogin = () => {
