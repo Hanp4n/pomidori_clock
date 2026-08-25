@@ -389,7 +389,11 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
       {/* Selected task */}
       <div className="mb-5 text-center">  
         { (
-          <Select value={activeSelectedTaskId ?? ''} onValueChange={v => setSelectedTaskId(v || null)}>
+          <Select value={activeSelectedTaskId ?? ''} onValueChange={v => {
+            const nextId = v || null
+            setSelectedTaskId(nextId)
+            saveTimerState({ mode, remaining, running, taskId: nextId })
+          }}>
             <SelectTrigger className="mx-auto mt-2 h-8 max-w-[240px]" aria-label="Select a task">
               <SelectValue placeholder="Select a task" />
             </SelectTrigger>
