@@ -1,6 +1,6 @@
 # Pomidori Clock
 
-An offline-first Pomodoro task tracker built as a desktop app with **Tauri v2**, **React 19**, **TypeScript**, and **Vite**. Tasks and settings are stored locally in SQLite and synced to **Supabase (Postgres)** whenever the device is online.
+An offline-first Pomodoro task tracker built with **Tauri v2**, **React 19**, **TypeScript**, and **Vite**, targeting **desktop** (Windows, macOS, Linux) and **Android**. Tasks and settings are stored locally in SQLite and synced to **Supabase (Postgres)** whenever the device is online.
 
 ## Features
 
@@ -8,6 +8,7 @@ An offline-first Pomodoro task tracker built as a desktop app with **Tauri v2**,
 - **Task management** — create, edit, complete, and soft-delete tasks with estimated pomodoro counts and category tags (`src/context/task/`, `src/components/dashboard/TasksPanel.tsx`).
 - **Timer configuration** — per-user focus/break durations, long-break interval, auto-start and sound toggles (`src/context/pomodoro-config/`, `src/components/dashboard/PomodoroSettingsForm.tsx`).
 - **Session metrics** — estimates remaining work time and projected finish time from unfinished tasks and the current config (`src/components/dashboard/MetricsStrip.tsx`).
+- **Cross-device timer state** — the running timer (mode, remaining time, active task) persists locally and syncs through a `TimerState` table, so switching devices picks up where you left off (`src/components/dashboard/timer-snapshot.ts`).
 - **Offline-first storage** — every syncable table is mirrored in a local SQLite database (`pomidori_clock_local.db`) via `@tauri-apps/plugin-sql`.
 - **Bi-directional sync** with Supabase:
   - Pulls on a 5-minute interval, on connectivity regain, and in real time via `postgres_changes` subscriptions.
@@ -19,7 +20,7 @@ An offline-first Pomodoro task tracker built as a desktop app with **Tauri v2**,
 
 | Layer      | Technology |
 | ---------- | ---------- |
-| Shell      | Tauri v2 (Rust) |
+| Shell      | Tauri v2 (Rust) — desktop + Android |
 | UI         | React 19 + TypeScript + Vite, Tailwind CSS v4, shadcn/ui |
 | Local DB   | SQLite via `@tauri-apps/plugin-sql` |
 | Cloud DB   | Supabase (Postgres, `pomidori_clock` schema) |
@@ -48,6 +49,8 @@ src/
 │   ├── schema.sqlite.ts         # local row types
 │   ├── schema.postgres.ts       # remote row types
 │   └── supabase.ts              # Supabase client
+├── lib/
+│   └── platform.ts              # mobile vs desktop detection
 └── pages/
     ├── Dashboard.tsx    # main app screen (timer + tasks + metrics)
     └── auth/            # Login, Register, OfflineLogin
@@ -88,8 +91,15 @@ VITE_SUPABASE_PUBLISHABLE_KEY=<your-publishable-key>
 | `npm run build`          | Typecheck (`tsc -b`) + build with Vite   |
 | `npm run lint`           | Run ESLint                               |
 | `npm test`               | Run Vitest tests                         |
-| `npx tauri dev`          | Run the Tauri desktop app in dev mode    |
+| `npx tauri dev`          | Run the desktop app in dev mode          |
 | `npx tauri build`        | Build the desktop app bundles            |
+| `npm run tauri android init` | Initialize the Android project       |
+| `npm run tauri android dev`  | Run the Android app in dev mode      |
+| `npm run tauri android build` | Build the Android APK               |
+
+## Releases
+
+Pushing a `v*` tag (or running the workflow manually) triggers [.github/workflows/build.yml](.github/workflows/build.yml), which builds NSIS (Windows), DMG (macOS), AppImage/deb/rpm (Linux), and an Android APK, then publishes them to a GitHub Release. Uninstall scripts are bundled with the DMG and AppImage artifacts.
 
 ## License
 
