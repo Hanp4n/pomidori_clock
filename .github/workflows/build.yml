@@ -17,6 +17,10 @@ jobs:
             bundle: dmg
           - os: ubuntu-latest
             bundle: appimage
+          - os: ubuntu-latest
+            bundle: deb
+          - os: ubuntu-latest
+            bundle: rpm
 
     runs-on: ${{ matrix.os }}
 
@@ -44,6 +48,10 @@ jobs:
             librsvg2-dev \
             libssl-dev
 
+      - name: Install rpm-build
+        if: matrix.bundle == 'rpm'
+        run: sudo apt-get install -y rpm
+
       - name: Build Tauri app
         run: npm run tauri build -- --bundles ${{ matrix.bundle }}
         env:
@@ -57,14 +65,14 @@ jobs:
           chmod +x src-tauri/target/release/bundle/dmg/uninstall.sh
 
       - name: Bundle AppImage uninstaller
-        if: startsWith(matrix.os, 'ubuntu')
+        if: matrix.bundle == 'appimage'
         run: |
           cp scripts/uninstall-appimage.sh src-tauri/target/release/bundle/appimage/
           chmod +x src-tauri/target/release/bundle/appimage/uninstall-appimage.sh
 
       - uses: actions/upload-artifact@v4
         with:
-          name: pomidori-clock-${{ matrix.os }}
+          name: pomidori-clock-${{ matrix.os }}-${{ matrix.bundle }}
           path: |
             src-tauri/target/release/bundle/
 
@@ -147,7 +155,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="${GITHUB_REF#refs/tags/}"
-          files=$(find artifacts -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.apk" -o -name "uninstall*.sh" \) | tr '\n' ' ')
+          files=$(find artifacts -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" -o -name "*.apk" -o -name "uninstall*.sh" \) | tr '\n' ' ')
           gh release create "$tag" \
             --repo "$GITHUB_REPOSITORY" \
             --title "Pomidori Clock $tag" \
