@@ -1,5 +1,4 @@
 import java.util.Properties
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -8,6 +7,13 @@ plugins {
 
 val tauriProperties = Properties().apply {
     val propFile = file("tauri.properties")
+    if (propFile.exists()) {
+        propFile.inputStream().use { load(it) }
+    }
+}
+
+val keyProperties = Properties().apply {
+    val propFile = file("key.properties")
     if (propFile.exists()) {
         propFile.inputStream().use { load(it) }
     }
@@ -24,6 +30,14 @@ android {
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
+    signingConfigs {
+        create("release") {
+            keyAlias = keyProperties.getProperty("keyAlias", "androiddebugkey")
+            keyPassword = keyProperties.getProperty("keyPassword", "android")
+            storeFile = file(keyProperties.getProperty("storeFile", System.getProperty("user.home") + "/.android/debug.keystore"))
+            storePassword = keyProperties.getProperty("storePassword", "android")
+        }
+    }
     buildTypes {
         getByName("debug") {
             applicationIdSuffix = ".debug"
@@ -31,7 +45,9 @@ android {
             isDebuggable = true
             isJniDebuggable = true
             isMinifyEnabled = false
-            packaging {                jniLibs.keepDebugSymbols.add("*/arm64-v8a/*.so")
+            signingConfig = signingConfigs.getByName("release")
+            packaging {
+                jniLibs.keepDebugSymbols.add("*/arm64-v8a/*.so")
                 jniLibs.keepDebugSymbols.add("*/armeabi-v7a/*.so")
                 jniLibs.keepDebugSymbols.add("*/x86/*.so")
                 jniLibs.keepDebugSymbols.add("*/x86_64/*.so")
@@ -39,6 +55,7 @@ android {
         }
         getByName("release") {
             isMinifyEnabled = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 *fileTree(".") { include("**/*.pro") }
                     .plus(getDefaultProguardFile("proguard-android-optimize.txt"))
