@@ -53,9 +53,14 @@ jobs:
       - name: Bundle macOS uninstaller
         if: startsWith(matrix.os, 'macos')
         run: |
-          mkdir -p src-tauri/target/release/bundle/macos-extras
-          cp scripts/uninstall.sh src-tauri/target/release/bundle/macos-extras/
-          chmod +x src-tauri/target/release/bundle/macos-extras/uninstall.sh
+          cp scripts/uninstall.sh src-tauri/target/release/bundle/dmg/
+          chmod +x src-tauri/target/release/bundle/dmg/uninstall.sh
+
+      - name: Bundle AppImage uninstaller
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          cp scripts/uninstall-appimage.sh src-tauri/target/release/bundle/appimage/
+          chmod +x src-tauri/target/release/bundle/appimage/uninstall-appimage.sh
 
       - uses: actions/upload-artifact@v4
         with:
@@ -142,7 +147,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="${GITHUB_REF#refs/tags/}"
-          files=$(find artifacts -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.apk" -o -name "*.nsis" -o -name "uninstall.sh" \) | tr '\n' ' ')
+          files=$(find artifacts -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.apk" -o -name "uninstall*.sh" \) | tr '\n' ' ')
           gh release create "$tag" \
             --repo "$GITHUB_REPOSITORY" \
             --title "Pomidori Clock $tag" \
