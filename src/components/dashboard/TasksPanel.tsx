@@ -166,7 +166,7 @@ const TasksPanel = () => {
   const openCount = tasks.filter(t => t.is_completed !== 1).length
 
   return (
-    <section aria-label="Tasks" className="flex flex-col rounded-3xl border border-border bg-card shadow-sm lg:absolute lg:inset-0">
+    <section aria-label="Tasks" className="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm lg:absolute lg:inset-0">
       {/* Panel header */}
       <div className="flex items-center justify-between gap-2 px-6 pt-5 pb-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">

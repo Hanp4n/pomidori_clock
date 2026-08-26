@@ -344,8 +344,8 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
 
       {/* Timer ring */}
       <div className="mb-4 flex justify-center">
-        <div className="relative" style={{ width: CANVAS, height: CANVAS }}>
-          <svg width={CANVAS} height={CANVAS}>
+        <div className="relative w-full max-w-[280px]">
+          <svg viewBox={`0 0 ${CANVAS} ${CANVAS}`} className="w-full h-auto">
             <defs>
               <linearGradient id="ring-gradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="var(--secondary)" />

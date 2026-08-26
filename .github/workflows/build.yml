@@ -7,7 +7,7 @@ on:
       - "v*"
 
 jobs:
-  build:
+  desktop:
     strategy:
       matrix:
         include:
@@ -50,8 +50,65 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
+      - name: Bundle macOS uninstaller
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          mkdir -p src-tauri/target/release/bundle/macos-extras
+          cp scripts/uninstall.sh src-tauri/target/release/bundle/macos-extras/
+          chmod +x src-tauri/target/release/bundle/macos-extras/uninstall.sh
+
       - uses: actions/upload-artifact@v4
         with:
           name: pomidori-clock-${{ matrix.os }}
           path: |
             src-tauri/target/release/bundle/
+
+  android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 36
+          build-tools: 36.0.0
+          accept-android-sdk-licenses: true
+
+      - name: Install Android NDK
+        run: |
+          sdkmanager --install "ndk;27.2.12479018"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
+      - name: Add Android targets to Rust
+        run: |
+          rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+
+      - name: Build Android APK
+        run: npm run tauri android build -- --bundles apk
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pomidori-clock-android
+          path: |
+            src-tauri/gen/android/app/build/outputs/apk/**/*.apk

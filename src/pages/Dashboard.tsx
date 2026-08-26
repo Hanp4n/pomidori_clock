@@ -17,10 +17,10 @@ const Dashboard = () => {
   const [remaining, setRemaining] = useState(DEFAULT_TIMES.focus_time)
 
   return (
-    <div className="dot-grid flex min-h-dvh flex-col">
+    <div className="dot-grid flex h-dvh flex-col overflow-y-auto overflow-x-hidden">
       <AppNavbar running={running} />
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-4 py-6 sm:px-6 lg:pb-50 pb-7">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-4 py-6 pb-24 sm:px-6 lg:pb-50">
+        <div className="grid min-h-0 gap-4 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">
           <PomodoroCard running={running} setRunning={setRunning} mode={mode} setMode={setMode} remaining={remaining} setRemaining={setRemaining} />
           <div className="relative">
             <TasksPanel />

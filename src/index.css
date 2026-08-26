@@ -117,6 +117,11 @@
     --sidebar-ring: oklch(0.552 0.016 285.938);
 }
 
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -131,6 +136,9 @@
     @apply font-sans;
     }
 }
+
+.sa-top { padding-top: var(--sat); }
+.sa-bottom { padding-bottom: var(--sab); }
 @keyframes rotate-gradient {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
