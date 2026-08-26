@@ -1,7 +1,6 @@
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-use tauri_plugin_sql::{Builder, Migration, MigrationKind};
-
 pub fn run() {
+    use tauri_plugin_sql::{Builder, Migration, MigrationKind};
     let migrations = vec![
         Migration {
             version: 1,
@@ -53,16 +52,23 @@ pub fn run() {
         },
     ];
     //println!("Running Tauri application with SQL migrations...");
-    tauri::Builder::default()
+    #[allow(unused_mut)]
+    let mut builder = tauri::Builder::default()
         .plugin(
             tauri_plugin_sql::Builder::new()
                 .add_migrations("sqlite:pomidori_clock_local.db", migrations)
                 .build(),
         )
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_keyring::init())
         .plugin(tauri_plugin_connectivity::init())
-        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_shell::init());
+
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_keyring::init());
+    }
+
+    builder
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(

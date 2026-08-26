@@ -1,5 +1,6 @@
 import type { LocalUser } from '@/db/schema.sqlite';
 import { getPassword, deletePassword, getSecret, setSecret, deleteSecret } from 'tauri-plugin-keyring-api';
+import { isMobile } from '@/lib/platform';
 
 export type KeychainSession = {
   access_token: string;
@@ -14,6 +15,8 @@ const decoder = new TextDecoder();
 export const getSessionKey = (user: Pick<LocalUser, 'id'>) => user.id;
 
 export const getSession = async (sessionKey: string): Promise<KeychainSession | null> => {
+  if (isMobile) return null;
+
   try {
     const stored = await getSecret(SERVICE, sessionKey);
     if (stored && stored.length > 0) {
@@ -53,10 +56,16 @@ export const getSession = async (sessionKey: string): Promise<KeychainSession | 
 };
 
 export const saveSession = async (sessionKey: string, session: KeychainSession): Promise<void> => {
-  await setSecret(SERVICE, sessionKey, encoder.encode(JSON.stringify(session)));
+  if (isMobile) return;
+  try {
+    await setSecret(SERVICE, sessionKey, encoder.encode(JSON.stringify(session)));
+  } catch (err) {
+    console.error('Failed to save session to keychain:', err);
+  }
 };
 
 export const clearSession = async (sessionKey: string): Promise<void> => {
+  if (isMobile) return;
   await Promise.allSettled([
     deleteSecret(SERVICE, sessionKey),
     deletePassword(SERVICE, sessionKey),

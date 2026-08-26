@@ -10,6 +10,7 @@ import { AuthApiError, AuthRetryableFetchError, AuthSessionMissingError } from '
 import { saveSession, getSession, clearSession, getSessionKey } from './session-keychain';
 import { ReconnectDialog } from '@/components/auth/ReconnectDialog';
 import { pauseTimerSnapshot } from '@/components/dashboard/timer-snapshot';
+import { isMobile } from '@/lib/platform';
 
 
 const GUEST_ID = '00000000-0000-0000-0000-000000000000';
@@ -300,6 +301,17 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   async function refreshSession(userAuth: LocalUser | null = user) {
     if (!userAuth) return;
     try {
+      if (isMobile) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          // Supabase already restored it from localStorage; the
+          // INITIAL_SESSION / SIGNED_IN listener will flip authStatus.
+          return;
+        }
+        setNeedsReauth(true);
+        return;
+      }
+
       const session = await getSession(getSessionKey(userAuth));
       console.log("restoring session with:", session)
 
@@ -346,7 +358,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!db) { return; }
     const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
       // console.log(event, session)
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         if (!session?.user) return;
         console.log(`${event} event triggered`)
         const newUser: LocalUser = {

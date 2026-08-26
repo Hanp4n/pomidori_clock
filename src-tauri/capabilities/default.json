@@ -10,7 +10,6 @@
     "sql:default",
     "sql:allow-execute",
     "connectivity:default",
-    "keyring:default",
     "notification:default",
     {
       "identifier": "shell:allow-execute",
