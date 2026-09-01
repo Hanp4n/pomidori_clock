@@ -26,7 +26,7 @@ const Dashboard = () => {
             <TasksPanel />
           </div>
         </div>
-        <MetricsStrip mode={mode} remaining={remaining} />
+        <MetricsStrip running={running} mode={mode} remaining={remaining} />
       </main>
     </div>
   )

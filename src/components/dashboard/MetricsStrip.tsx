@@ -63,7 +63,7 @@ const computeMetrics = (
 const formatLength = (totalMinutes: number) =>
   totalMinutes >= 60 ? `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m` : `${totalMinutes}m`
 
-const MetricsStrip = ({ mode, remaining }: { mode?: TimerMode; remaining?: number } = {}) => {
+const MetricsStrip = ({ running, mode, remaining }: { running?: boolean; mode?: TimerMode; remaining?: number } = {}) => {
   const { localUserId } = useAuth()
   const db = useDb()
   const { tasks } = useTasks()
@@ -87,6 +87,8 @@ const MetricsStrip = ({ mode, remaining }: { mode?: TimerMode; remaining?: numbe
     startTime,
     mode !== undefined && remaining !== undefined ? { mode, remaining } : undefined,
   )
+  // running forces a recompute when the timer starts/stops
+  void running
   const unfinished = tasks.filter(t => t.is_completed !== 1)
 
   const stats: { label: string; value: string; sub: string }[] = [
