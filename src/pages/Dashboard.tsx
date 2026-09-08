@@ -22,7 +22,7 @@ const Dashboard = () => {
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-4 py-6 pb-24 sm:px-6 lg:pb-50">
         <div className="grid min-h-0 gap-4 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">
           <PomodoroCard running={running} setRunning={setRunning} mode={mode} setMode={setMode} remaining={remaining} setRemaining={setRemaining} />
-          <div className="relative">
+          <div className="relative min-w-0">
             <TasksPanel />
           </div>
         </div>

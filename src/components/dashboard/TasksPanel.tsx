@@ -371,7 +371,7 @@ const TasksPanel = () => {
                   aria-label={`Mark ${task.title} as completed`}
                 />
                 <div className="min-w-0 flex-1 pl-1">
-                  <div className="flex min-w-0 items-center gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <h3 className={`truncate text-sm font-semibold ${task.is_completed === 1 ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{task.title}</h3>
                     {(taskTags[task.id] ?? []).map(tag => (
                       <span
@@ -384,7 +384,7 @@ const TasksPanel = () => {
                     ))}
                   </div>
                   {task.description && (
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{task.description}</p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{clampDescription(task.description, descChars)}</p>
                   )}
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
@@ -446,6 +446,16 @@ const TasksPanel = () => {
       )}
     </section>
   )
+}
+
+function describeChars(width: number): number {
+  const rowChrome = 96
+  return Math.max(12, Math.floor((width - rowChrome) / 10))
+}
+
+function clampDescription(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text
+  return text.slice(0, maxChars).trimEnd() + '…'
 }
 
 export default TasksPanel
