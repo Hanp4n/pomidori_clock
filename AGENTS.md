@@ -7,6 +7,7 @@
 - **Tests**: `npm test` or `npx vitest` (Vitest)
 - **Run Single Test**: `npx vitest run <test-file>`
 - **Tauri Dev / Build**: `npx tauri dev` / `npx tauri build`
+- **Android Dev Build**: `npm run tauri android dev` (requires Android SDK/NDK + device/emulator)
 
 ## Architecture & Boundaries
 - **Stack**: React 19 + TypeScript + Vite + Tailwind CSS v4 (`@tailwindcss/vite`) + Tauri v2 (`src-tauri`) + Supabase / local SQLite sync (`src/db`).
