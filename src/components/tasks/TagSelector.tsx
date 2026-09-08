@@ -24,6 +24,11 @@ type TagSelectorProps = {
   placeholder?: string
 }
 
+const safeColor = (color: string) => {
+  const hex = color.length === 9 && color.startsWith('#') ? color.slice(0, 7) : color
+  return /^#[0-9A-Fa-f]{6}$/.test(hex) ? hex : '#808080'
+}
+
 const TagSelector = ({
   id,
   tags,
@@ -50,7 +55,7 @@ const TagSelector = ({
 
   const handleCreate = () => {
     if (!newName.trim() || !onCreate) return
-    onCreate(newName.trim(), newColor)
+    onCreate(newName.trim(), safeColor(newColor))
     setNewName('')
     setNewColor('#3A34EB')
     setOpenCreate(false)
@@ -72,7 +77,7 @@ const TagSelector = ({
     for (const tag of tags) {
       const e = edits[tag.id]
       if (e && (e.name !== tag.name || e.color !== tag.color)) {
-        onUpdate(tag.id, e.name, e.color)
+        onUpdate(tag.id, e.name, safeColor(e.color))
       }
     }
     setOpenManage(false)
