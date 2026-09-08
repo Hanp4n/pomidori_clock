@@ -83,7 +83,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       id: crypto.randomUUID(),
       title: input.title,
       description: input.description ?? null,
-      n_pomodoros: input.n_pomodoros ?? 1,
+      n_pomodoros: Math.max(1, input.n_pomodoros ?? 1),
       user_id: localUserId,
       completed_pomodoros: 0,
       is_completed: 0,
@@ -114,7 +114,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       ...tasks[taskIndex],
       title: input.title,
       description: input.description ?? null,
-      n_pomodoros: input.n_pomodoros ?? tasks[taskIndex].n_pomodoros,
+      n_pomodoros: Math.max(1, input.n_pomodoros ?? tasks[taskIndex].n_pomodoros),
       completed_pomodoros: input.completed_pomodoros ?? tasks[taskIndex].completed_pomodoros,
       is_completed: input.is_completed !== undefined
         ? input.is_completed
