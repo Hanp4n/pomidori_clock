@@ -66,9 +66,9 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     }
   }, [db, isOnline, authStatus, localUserId]);
 
-  const notifyRemoteChange = (tableName: string, isRemoteSynced: boolean) => {
+  const notifyRemoteChange = (tableName: string, isRemoteSynced: boolean, prev: RemoteChanges[] = remoteChanges) => {
     return [
-      ...remoteChanges.filter(rc => rc.table !== tableName),
+      ...prev.filter(rc => rc.table !== tableName),
       {
         table: tableName,
         remoteSynced: isRemoteSynced
@@ -132,7 +132,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
 
           })
         );
-        setRemoteChanges(notifyRemoteChange(tableName, false))
+        setRemoteChanges(prev => notifyRemoteChange(tableName, false, prev))
       }));
 
       setLastSyncedAt(new Date());
