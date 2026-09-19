@@ -8,9 +8,10 @@ import PomodoroSettingsForm from './PomodoroSettingsForm'
 
 interface AppNavbarProps {
   running?: boolean
+  pauseTimer?: () => void
 }
 
-const AppNavbar = ({ running = false }: AppNavbarProps) => {
+const AppNavbar = ({ running = false, pauseTimer }: AppNavbarProps) => {
   const navigate = useNavigate()
   const { user, status: authStatus, signOut, exit } = useAuth()
   const isOnline = useIsOnline()
@@ -127,7 +128,7 @@ const AppNavbar = ({ running = false }: AppNavbarProps) => {
             <Button variant="ghost" size="icon" disabled title="Notifications coming later">
               <Bell />
             </Button>
-            <Popover>
+            <Popover onOpenChange={open => { if (open && running && pauseTimer) pauseTimer() }}>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" aria-label="Configuration">
                   <Settings />
