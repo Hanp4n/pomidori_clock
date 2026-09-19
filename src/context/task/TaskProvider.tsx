@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { LocalTask } from '@/db/schema.sqlite';
 import type { Tag } from '@/components/tasks/TagSelector';
 import { useDb } from '../db/DbHook';
@@ -16,6 +16,15 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   const { sync, remoteChanges, setRemoteChanges, notifyRemoteChange } = useSync();
   const [tasks, setTasks] = useState<LocalTask[]>([]);
   const [taskTags, setTaskTags] = useState<Record<string, Tag[]>>({});
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+
+  const filteredTasks = useMemo(() => {
+    if (selectedTagIds.length === 0) return tasks;
+    return tasks.filter(t => {
+      const tags = taskTags[t.id] ?? [];
+      return tags.some(tag => selectedTagIds.includes(tag.id));
+    });
+  }, [tasks, taskTags, selectedTagIds]);
 
   const fetchTasks = useCallback(async (): Promise<LocalTask[]> => {
     if (!db || !user) return [];
@@ -238,7 +247,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   }, [remoteChanges, db, notifyRemoteChange, setRemoteChanges, refreshTasks]);
 
   return (
-    <TaskContext.Provider value={{ tasks, taskTags, refreshTasks, refreshTaskTags, addTask, updateTask, deleteTask, toggleComplete, clearCompleted, incrementTaskPomodoros }}>
+    <TaskContext.Provider value={{ tasks, taskTags, selectedTagIds, setSelectedTagIds, filteredTasks, refreshTasks, refreshTaskTags, addTask, updateTask, deleteTask, toggleComplete, clearCompleted, incrementTaskPomodoros }}>
       {children}
     </TaskContext.Provider>
   );

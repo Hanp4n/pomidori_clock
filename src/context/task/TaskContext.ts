@@ -13,6 +13,9 @@ export type NewTaskInput = {
 export interface TaskContextValue {
   tasks: LocalTask[];
   taskTags: Record<string, Tag[]>;
+  selectedTagIds: string[];
+  setSelectedTagIds: React.Dispatch<React.SetStateAction<string[]>>;
+  filteredTasks: LocalTask[];
   refreshTasks: () => Promise<void>;
   refreshTaskTags: () => Promise<void>;
   addTask: (input: NewTaskInput, tagIds?: string[]) => Promise<void>;
