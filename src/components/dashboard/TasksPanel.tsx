@@ -5,13 +5,15 @@ import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
 import TagSelector, { type Tag } from '@/components/tasks/TagSelector'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useAuth } from '@/context/auth/AuthHook'
 import type { LocalTask } from '@/db/schema.sqlite'
 import { useDb } from '@/context/db/DbHook'
@@ -19,17 +21,22 @@ import { useSync } from '@/context/sync/SyncHook'
 import { notifyLocalChange } from '@/context/sync/sync-bus'
 import { useTasks } from '@/context/task/TaskHook'
 
-const TasksPanel = () => {
+const TasksPanel = ({ selectedTaskId, selectTask }: { selectedTaskId: string | null; selectTask: (id: string) => void }) => {
   const { user, localUserId, status: authStatus } = useAuth();
   const { remoteChanges, setRemoteChanges, notifyRemoteChange } = useSync();
-  const { tasks, taskTags, addTask, updateTask, deleteTask, toggleComplete, clearCompleted, refreshTaskTags } = useTasks();
+  const { tasks, taskTags, filteredTasks, selectedTagIds, setSelectedTagIds, addTask, updateTask, deleteTask, toggleComplete, clearCompleted, refreshTaskTags } = useTasks();
   const db = useDb();
   const [categories, setCategories] = useState<Tag[]>([])
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [modifyTaskTags, setModifyTaskTags] = useState<string[]>([])
   const [openNewTask, setOpenNewTask] = useState(false)
   const [openModifyTaskForm, setOpenModifyTaskForm] = useState(false)
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false)
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+
+  // Recalculated per render; never listened to window resizes (per-resize
+  // setState re-renders jank the panel while the native layout already adapts).
+  const descChars = describeChars(window.innerWidth)
 
   // New Task Form
   const [newTaskForm, setNewTaskForm] = useState({
@@ -116,16 +123,16 @@ const TasksPanel = () => {
       n_pomodoros,
       completed_pomodoros,
     })
-    setSelectedTaskId(task.id);
+    setEditingTaskId(task.id);
     setModifyTaskTags((taskTags[task.id] ?? []).map(t => t.id));
     setOpenModifyTaskForm(true);
   }
 
   const handleModifyTask = async () => {
-    if (!modifyTaskForm.title.trim() || !selectedTaskId) return;
-    await updateTask(selectedTaskId, modifyTaskForm, modifyTaskTags);
+    if (!modifyTaskForm.title.trim() || !editingTaskId) return;
+    await updateTask(editingTaskId, modifyTaskForm, modifyTaskTags);
     setOpenModifyTaskForm(false);
-    setSelectedTaskId(null);
+    setEditingTaskId(null);
   }
 
   const handleAdjustPomodoros = (task: LocalTask, delta: number) => {
@@ -163,7 +170,27 @@ const TasksPanel = () => {
     }
   }, [remoteChanges, db, refreshTaskTags])
 
-  const openCount = tasks.filter(t => t.is_completed !== 1).length
+  const isNewTaskFormDirty =
+    newTaskForm.title.trim() !== '' ||
+    newTaskForm.description.trim() !== '' ||
+    newTaskForm.n_pomodoros !== 1 ||
+    selectedTags.length > 0
+
+  const resetNewTaskForm = () => {
+    setNewTaskForm({ title: '', description: '', n_pomodoros: 1 })
+    setSelectedTags([])
+  }
+
+  const handleNewTaskOpenChange = (open: boolean) => {
+    if (!open && isNewTaskFormDirty) {
+      setConfirmDiscardOpen(true)
+      return
+    }
+    if (!open) resetNewTaskForm()
+    setOpenNewTask(open)
+  }
+
+  const openCount = filteredTasks.filter(t => t.is_completed !== 1).length
 
   return (
     <section aria-label="Tasks" className="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm lg:absolute lg:inset-0">
@@ -185,7 +212,7 @@ const TasksPanel = () => {
           >
             <Trash2 />
           </Button>
-          <Dialog open={openNewTask} onOpenChange={setOpenNewTask}>
+          <Dialog open={openNewTask} onOpenChange={handleNewTaskOpenChange}>
             <DialogTrigger asChild>
               <Button size="sm" className="rounded-xl bg-slate-900 text-white hover:bg-slate-800 dark:bg-background dark:text-foreground dark:border dark:border-border">
                 <Plus data-icon="inline-start" />
@@ -210,9 +237,11 @@ const TasksPanel = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="description">Description (Optional)</Label>
-                  <Input
+                  <textarea
                     id="description"
                     placeholder="Enter description"
+                    rows={3}
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none"
                     value={newTaskForm.description}
                     onChange={(e) =>
                       setNewTaskForm({ ...newTaskForm, description: e.target.value })
@@ -229,7 +258,7 @@ const TasksPanel = () => {
                     onChange={(e) =>
                       setNewTaskForm({
                         ...newTaskForm,
-                        n_pomodoros: parseInt(e.target.value) || 0,
+                        n_pomodoros: Math.max(1, parseInt(e.target.value) || 1),
                       })
                     }
                   />
@@ -255,16 +284,78 @@ const TasksPanel = () => {
               </Button>
             </DialogContent>
           </Dialog>
+
+          <Dialog open={confirmDiscardOpen} onOpenChange={setConfirmDiscardOpen}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Discard changes?</DialogTitle>
+                <DialogDescription>
+                  You have unsaved changes. Are you sure you want to discard them?
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setConfirmDiscardOpen(false)}>
+                  Keep editing
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    resetNewTaskForm()
+                    setConfirmDiscardOpen(false)
+                    setOpenNewTask(false)
+                  }}
+                >
+                  Discard
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
-      {/* Modify dialog */}
+      {/* Tag filter chips */}
+      {categories.length > 0 && (
+        <div className="flex gap-1.5 overflow-x-auto px-6 pt-1 pb-3">
+          <button
+            type="button"
+            onClick={() => setSelectedTagIds([])}
+            className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+              selectedTagIds.length === 0
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            All
+          </button>
+          {categories.map(tag => {
+            const active = selectedTagIds.includes(tag.id)
+            return (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() =>
+                  setSelectedTagIds(prev =>
+                    active ? prev.filter(id => id !== tag.id) : [...prev, tag.id]
+                  )
+                }
+                className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
+                  active ? 'ring-2 ring-ring ring-offset-1 ring-offset-background' : ''
+                }`}
+                style={{ backgroundColor: tag.color }}
+              >
+                {tag.name}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       <Dialog
         open={openModifyTaskForm}
         onOpenChange={(open) => {
           setOpenModifyTaskForm(open);
           if (!open) {
-            setSelectedTaskId(null);
+            setEditingTaskId(null);
             setModifyTaskTags([]);
           }
         }}
@@ -287,14 +378,16 @@ const TasksPanel = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="modify-description">Description (Optional)</Label>
-              <Input
-                id="modify-description"
-                placeholder="Enter description"
-                value={modifyTaskForm.description}
-                onChange={(e) =>
-                  setModifyTaskForm({ ...modifyTaskForm, description: e.target.value })
-                }
-              />
+                  <textarea
+                    id="modify-description"
+                    placeholder="Enter description"
+                    rows={3}
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none"
+                    value={modifyTaskForm.description}
+                    onChange={(e) =>
+                      setModifyTaskForm({ ...modifyTaskForm, description: e.target.value })
+                    }
+                  />
             </div>
             <div className="space-y-2">
               <Label htmlFor="modify-pomodoros">Pomodoros</Label>
@@ -306,7 +399,7 @@ const TasksPanel = () => {
                 onChange={(e) =>
                   setModifyTaskForm({
                     ...modifyTaskForm,
-                    n_pomodoros: parseInt(e.target.value) || 0,
+                    n_pomodoros: Math.max(1, parseInt(e.target.value) || 1),
                   })
                 }
               />
@@ -322,7 +415,7 @@ const TasksPanel = () => {
                 onChange={(e) =>
                   setModifyTaskForm({
                     ...modifyTaskForm,
-                    completed_pomodoros: parseInt(e.target.value) || 0,
+                    completed_pomodoros: Math.max(0, Math.min(parseInt(e.target.value) || 0, Math.max(1, modifyTaskForm.n_pomodoros))),
                   })
                 }
               />
@@ -354,13 +447,21 @@ const TasksPanel = () => {
         <div className="mx-6 mb-6 flex flex-1 items-center justify-center rounded-2xl border border-dashed border-border py-10 text-sm text-muted-foreground">
           No tasks yet — add your first one.
         </div>
+      ) : filteredTasks.length === 0 ? (
+        <div className="mx-6 mb-6 flex flex-1 items-center justify-center rounded-2xl border border-dashed border-border py-10 text-sm text-muted-foreground">
+          No tasks match the selected tags.
+        </div>
       ) : (
         <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto border-t border-border">
-          {tasks.map(task => (
+          {filteredTasks.map(task => (
             <li
               key={task.id}
-              className="relative cursor-pointer overflow-hidden px-6 py-3 transition-colors hover:bg-muted/50"
-              onClick={() => handleOpenModifyTaskForm(task)}
+              className={`relative overflow-hidden px-6 py-3 transition-colors ${
+                task.is_completed === 1
+                  ? 'cursor-default'
+                  : `cursor-pointer hover:bg-muted/50 ${selectedTaskId === task.id ? 'bg-muted/50 ring-2 ring-ring ring-inset' : ''}`
+              }`}
+              onClick={() => { if (task.is_completed !== 1) selectTask(task.id) }}
             >
               <div className="flex items-center justify-between gap-3">
                 <Checkbox
@@ -417,6 +518,18 @@ const TasksPanel = () => {
                       <ChevronDown className="size-3.5 text-muted-foreground" />
                     </button>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-muted-foreground hover:text-foreground"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenModifyTaskForm(task);
+                    }}
+                    aria-label={`Edit ${task.title}`}
+                  >
+                    <Pencil />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon-sm"
