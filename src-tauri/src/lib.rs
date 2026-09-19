@@ -50,6 +50,12 @@ pub fn run() {
             sql: include_str!("../../src/db/migrations/sqlite/pomidori_clock_local_v8.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 9,
+            description: "add_restart_on_task_switch",
+            sql: include_str!("../../src/db/migrations/sqlite/pomidori_clock_local_v9.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
     //println!("Running Tauri application with SQL migrations...");
     #[allow(unused_mut)]

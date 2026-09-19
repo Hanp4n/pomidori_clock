@@ -309,6 +309,37 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
     finishSession()
   }
 
+  const handleTaskChange = (nextId: string) => {
+    const id = nextId || null
+    const full = config ? config[mode] * 60 : remaining
+    const wasRunning = running
+    const restart = config ? config.restart_on_task_switch === 1 : true
+    const hasProgress = wasRunning || !!sessionStartRef.current || remaining < full
+    if (hasProgress && restart) {
+      if (!window.confirm('Switching tasks will reset the current timer. Continue?')) return
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      if (sessionStartRef.current) {
+        logSession(mode === 'focus_time' ? 'focus' : mode === 'short_break_time' ? 'short_break' : 'long_break', sessionStartRef.current)
+        sessionStartRef.current = null
+      }
+      setTotalSeconds(full)
+      setRemaining(full)
+      if (wasRunning && restart) {
+        sessionStartRef.current = new Date().toISOString()
+        setRunning(true)
+        setEndAt(Date.now() + full * 1000)
+      } else {
+        setRunning(false)
+        setEndAt(null)
+      }
+    }
+    setSelectedTaskId(id)
+    if(restart){
+      writeTimerSnapshot(localUserId, { mode, remaining: full, running: wasRunning && restart, taskId: id })
+      saveTimerState({ mode, remaining: full, running: wasRunning && restart, taskId: id })
+    }
+  }
+
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60)
     const sec = s % 60

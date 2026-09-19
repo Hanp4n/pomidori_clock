@@ -22,6 +22,7 @@ export type RemotePomodoroConfig = {
   focus_auto: number;
   break_auto: number;
   sound_enabled: number;
+  restart_on_task_switch: boolean;
 };
 export type NewRemotePomodoroConfig = {
   id?: string;
@@ -33,6 +34,7 @@ export type NewRemotePomodoroConfig = {
   focus_auto: number;
   break_auto: number;
   sound_enabled: number;
+  restart_on_task_switch: boolean;
   created_at: string;
   updated_at: string;
 };

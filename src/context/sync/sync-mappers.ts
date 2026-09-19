@@ -141,6 +141,7 @@ export function pomodoroConfigLocalToRemote(
     sound_enabled: local.sound_enabled,
     created_at: local.created_at,
     updated_at: local.updated_at,
+    restart_on_task_switch: Boolean(local.restart_on_task_switch),
   };
 }
 
@@ -162,6 +163,7 @@ export function pomodoroConfigRemoteToLocal(
     updated_at: remote.updated_at,
     deleted_at: null, 
     is_synced: 1,
+    restart_on_task_switch: remote.restart_on_task_switch ? 1 : 0,
   };
 }
 

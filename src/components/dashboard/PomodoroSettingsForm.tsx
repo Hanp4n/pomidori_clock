@@ -13,6 +13,7 @@ type Draft = {
   focus_auto: boolean
   break_auto: boolean
   sound_enabled: boolean
+  restart_on_task_switch: boolean
 }
 
 const clampMinutes = (value: number) =>
@@ -29,6 +30,7 @@ const AUTO_FIELDS = [
   { key: 'focus_auto', label: 'Auto-start pomodoros' },
   { key: 'break_auto', label: 'Auto-start breaks' },
   { key: 'sound_enabled', label: 'Play finish sound' },
+  { key: 'restart_on_task_switch', label: 'Restart timer on task switch' },
 ] as const
 
 const PomodoroSettingsForm = () => {
@@ -46,8 +48,9 @@ const PomodoroSettingsForm = () => {
           focus_auto: config.focus_auto === 1,
           break_auto: config.break_auto === 1,
           sound_enabled: config.sound_enabled === 1,
+          restart_on_task_switch: config.restart_on_task_switch === 1,
         }
-      : { focus_time: 0, short_break_time: 0, long_break_time: 0, long_break_count: 0, focus_auto: false, break_auto: false, sound_enabled: false },
+      : { focus_time: 0, short_break_time: 0, long_break_time: 0, long_break_count: 0, focus_auto: false, break_auto: false, sound_enabled: false, restart_on_task_switch: true },
   )
   const [seededFrom, setSeededFrom] = useState(config)
 
@@ -66,6 +69,7 @@ const PomodoroSettingsForm = () => {
       focus_auto: config.focus_auto === 1,
       break_auto: config.break_auto === 1,
       sound_enabled: config.sound_enabled === 1,
+      restart_on_task_switch: config.restart_on_task_switch === 1,
     })
   }
 
@@ -76,7 +80,8 @@ const PomodoroSettingsForm = () => {
     draft.long_break_count !== config.long_break_count ||
     draft.focus_auto !== (config.focus_auto === 1) ||
     draft.break_auto !== (config.break_auto === 1) ||
-    draft.sound_enabled !== (config.sound_enabled === 1)
+    draft.sound_enabled !== (config.sound_enabled === 1) ||
+    draft.restart_on_task_switch !== (config.restart_on_task_switch === 1)
 
   const save = () => {
     updateConfig({
@@ -87,6 +92,7 @@ const PomodoroSettingsForm = () => {
       focus_auto: draft.focus_auto ? 1 : 0,
       break_auto: draft.break_auto ? 1 : 0,
       sound_enabled: draft.sound_enabled ? 1 : 0,
+      restart_on_task_switch: draft.restart_on_task_switch ? 1 : 0,
     })
   }
 
