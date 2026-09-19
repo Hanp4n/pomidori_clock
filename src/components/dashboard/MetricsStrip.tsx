@@ -66,7 +66,7 @@ const formatLength = (totalMinutes: number) =>
 const MetricsStrip = ({ running, mode, remaining }: { running?: boolean; mode?: TimerMode; remaining?: number } = {}) => {
   const { localUserId } = useAuth()
   const db = useDb()
-  const { tasks } = useTasks()
+  const { filteredTasks } = useTasks()
 
   const [config, setConfig] = useState<ConfigRow>(DEFAULT_CONFIG)
   const [startTime, setStartTime] = useState(nowTime)
@@ -74,7 +74,7 @@ const MetricsStrip = ({ running, mode, remaining }: { running?: boolean; mode?: 
   useEffect(() => {
     if (!db || !localUserId) return
     db.select<ConfigRow[]>(
-      'SELECT focus_time, short_break_time, long_break_time, long_break_count FROM PomodoroConfig WHERE user_id = $1 AND deleted_at IS NULL LIMIT 1',
+      'SELECT focus_time, short_break_time, long_break_time, long_break_count FROM PomodoroConfig WHERE user_id = $1 AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1',
       [localUserId],
     ).then(rows => {
       if (rows[0]) setConfig({ ...DEFAULT_CONFIG, ...rows[0] })
@@ -82,19 +82,19 @@ const MetricsStrip = ({ running, mode, remaining }: { running?: boolean; mode?: 
   }, [db, localUserId])
 
   const { sessions, finishHour, totalMinutes } = computeMetrics(
-    tasks,
+    filteredTasks,
     config,
     startTime,
     mode !== undefined && remaining !== undefined ? { mode, remaining } : undefined,
   )
   // running forces a recompute when the timer starts/stops
   void running
-  const unfinished = tasks.filter(t => t.is_completed !== 1)
+  const unfinished = filteredTasks.filter(t => t.is_completed !== 1)
 
   const stats: { label: string; value: string; sub: string }[] = [
-    { label: 'Sessions left', value: tasks.length > 0 ? String(sessions) : '...', sub: tasks.length > 0 ? `${unfinished.length} unfinished tasks` : 'No tasks' },
-    { label: 'Finishing hour', value: tasks.length > 0 ? finishHour : '...', sub: tasks.length > 0 ?  `starting at ${startTime || '--:--'}` : 'No tasks' },
-    { label: 'Total length', value: tasks.length > 0 ?  formatLength(totalMinutes) : '...', sub: tasks.length > 0 ?  'start to finish' : 'No tasks' },
+    { label: 'Sessions left', value: filteredTasks.length > 0 ? String(sessions) : '...', sub: filteredTasks.length > 0 ? `${unfinished.length} unfinished tasks` : 'No tasks' },
+    { label: 'Finishing hour', value: filteredTasks.length > 0 ? finishHour : '...', sub: filteredTasks.length > 0 ?  `starting at ${startTime || '--:--'}` : 'No tasks' },
+    { label: 'Total length', value: filteredTasks.length > 0 ?  formatLength(totalMinutes) : '...', sub: filteredTasks.length > 0 ?  'start to finish' : 'No tasks' },
   ]
 
   return (
