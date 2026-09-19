@@ -7,7 +7,7 @@ import { createPomodoroConfig as createConfigOp, updatePomodoroConfig as updateC
 import { notifyLocalChange } from '../sync/sync-bus';
 import { PomodoroConfigContext, type NewPomodoroConfigInput } from './PomodoroConfigContext';
 
-const CONFIG_COLUMNS = 'id, user_id, focus_time, short_break_time, long_break_time, long_break_count, focus_auto, break_auto, sound_enabled, created_at, updated_at, deleted_at, is_synced';
+const CONFIG_COLUMNS = 'id, user_id, focus_time, short_break_time, long_break_time, long_break_count, focus_auto, break_auto, sound_enabled, restart_on_task_switch, created_at, updated_at, deleted_at, is_synced';
 
 export function PomodoroConfigProvider({ children }: { children: React.ReactNode }) {
   const db = useDb();
@@ -20,7 +20,7 @@ export function PomodoroConfigProvider({ children }: { children: React.ReactNode
   const fetchConfig = useCallback(async (): Promise<LocalPomodoroConfig | null> => {
     if (!db || !user) return null;
     const rows = await db.select<LocalPomodoroConfig[]>(
-      `SELECT ${CONFIG_COLUMNS} FROM PomodoroConfig WHERE user_id = $1 AND deleted_at IS NULL LIMIT 1`,
+      `SELECT ${CONFIG_COLUMNS} FROM PomodoroConfig WHERE user_id = $1 AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1`,
       [user.id],
     );
     return rows[0] ?? null;
@@ -46,6 +46,7 @@ export function PomodoroConfigProvider({ children }: { children: React.ReactNode
       focus_auto: input.focus_auto ?? 0,
       break_auto: input.break_auto ?? 0,
       sound_enabled: input.sound_enabled ?? 1,
+      restart_on_task_switch: input.restart_on_task_switch ?? 1,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       deleted_at: null,
@@ -72,6 +73,7 @@ export function PomodoroConfigProvider({ children }: { children: React.ReactNode
       focus_auto: input.focus_auto ?? config.focus_auto,
       break_auto: input.break_auto ?? config.break_auto,
       sound_enabled: input.sound_enabled ?? config.sound_enabled,
+      restart_on_task_switch: input.restart_on_task_switch ?? config.restart_on_task_switch,
       updated_at: new Date().toISOString(),
       is_synced: 0,
     };
@@ -106,13 +108,18 @@ export function PomodoroConfigProvider({ children }: { children: React.ReactNode
     let cancelled = false;
     const load = async () => {
       try {
-        const fetched = await fetchConfig();
+        // Pull the account's remote config first. Creating the local default
+        // before pulling would mint a second row (different id) that sync
+        // merges by id, so devices stay pinned to their own stale row and
+        // never see each other's edits.
+        if (authStatus !== 'guest') await sync();
         if (cancelled) return;
         // ponytail: the provider owns row creation — no row means create it here
         // so consumers never invent defaults of their own.
+        const fetched = await fetchConfig();
+        if (cancelled) return;
         if (!fetched) await addConfig({});
         else setConfig(fetched);
-        if (authStatus !== 'guest') sync();
       } catch (err) {
         console.error('Failed to load pomodoro config:', err);
       }

@@ -9,6 +9,7 @@ export type NewPomodoroConfigInput = {
   focus_auto?: 1 | 0;
   break_auto?: 1 | 0;
   sound_enabled?: 1 | 0;
+  restart_on_task_switch?: 1 | 0;
 };
 
 export interface PomodoroConfigContextValue {
