@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback, type Dispatch, type SetStateAction } from 'react'
+import { useEffect, useState, useRef, useCallback, forwardRef, useImperativeHandle, type Dispatch, type SetStateAction } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -73,17 +73,23 @@ interface PomodoroCardProps {
   setMode: Dispatch<SetStateAction<TimerMode>>
   remaining: number
   setRemaining: Dispatch<SetStateAction<number>>
+  selectedTaskId: string | null
+  setSelectedTaskId: Dispatch<SetStateAction<string | null>>
 }
 
-const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemaining }: PomodoroCardProps) => {
+export interface PomodoroCardHandle {
+  pauseTimer: () => void
+  selectTask: (id: string) => void
+}
+
+const PomodoroCard = forwardRef<PomodoroCardHandle, PomodoroCardProps>(({ running, setRunning, mode, setMode, remaining, setRemaining, selectedTaskId, setSelectedTaskId }, ref) => {
   const { localUserId } = useAuth()
-  const { tasks, incrementTaskPomodoros } = useTasks()
+  const { tasks, filteredTasks, incrementTaskPomodoros } = useTasks()
   const db = useDb()
   const { config } = usePomodoroConfig()
   const { remoteChanges, setRemoteChanges, notifyRemoteChange } = useSync()
 
   const [totalSeconds, setTotalSeconds] = useState(DEFAULT_TIMES.focus_time)
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const sessionStartRef = useRef<string | null>(null)
   const focusStreakRef = useRef(0)
@@ -91,6 +97,8 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
   useEffect(() => { modeRef.current = mode }, [mode])
   const lastAppliedConfig = useRef<LocalPomodoroConfig | null>(null)
   const didRestoreRef = useRef(false)
+  const [endAt, setEndAt] = useState<number | null>(null)
+  const finishSessionRef = useRef<(chosen?: TimerMode) => void>(() => {})
 
   const selectedTask: LocalTask | undefined =
     tasks.find(t => t.id === selectedTaskId && t.is_completed !== 1)
@@ -102,6 +110,9 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
   const applyRestoredSnapshot = useCallback((saved: TimerSnapshot) => {
     if (!config) return
     const remainingNow = restoredRemaining(saved)
+    setEndAt(saved.running
+      ? new Date(saved.savedAt).getTime() + saved.remaining * 1000
+      : null)
     setMode(saved.mode)
     setTotalSeconds(config[saved.mode] * 60)
     setRemaining(remainingNow)
@@ -117,7 +128,7 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
     }
     // keep the localStorage mirror in step so a restart resumes from synced state
     writeTimerSnapshot(localUserId, { mode: saved.mode, remaining: remainingNow, running: saved.running, taskId: saved.taskId })
-  }, [config, localUserId, setRunning, setMode, setRemaining])
+  }, [config, localUserId, setRunning, setMode, setRemaining, setSelectedTaskId])
 
   // Mirrors each snapshot into the synced TimerState row (id = userId:
   // exactly one per user). The push debounce + realtime channel take it
@@ -245,25 +256,35 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
     }
     if (next === 'long_break_time') focusStreakRef.current = 0
 
+    const shouldAutoStart =
+      (next !== 'focus_time' && config.break_auto === 1) ||
+      (next === 'focus_time' && config.focus_auto === 1)
+
     setMode(next)
     setTotalSeconds(config[next] * 60)
     setRemaining(config[next] * 60)
-    setRunning(false)
-    writeTimerSnapshot(localUserId, { mode: next, remaining: config[next] * 60, running: false, taskId: activeSelectedTaskId })
-    saveTimerState({ mode: next, remaining: config[next] * 60, running: false, taskId: activeSelectedTaskId })
+    setRunning(shouldAutoStart)
+    setEndAt(shouldAutoStart ? Date.now() + config[next] * 60 * 1000 : null)
+    writeTimerSnapshot(localUserId, { mode: next, remaining: config[next] * 60, running: shouldAutoStart, taskId: activeSelectedTaskId })
+    saveTimerState({ mode: next, remaining: config[next] * 60, running: shouldAutoStart, taskId: activeSelectedTaskId })
   }, [config, mode, logSession, setRunning, setMode, setRemaining, localUserId, activeSelectedTaskId, saveTimerState])
 
-  // Tick
+  // Keep the expiry effect's reference to finishSession current across renders.
+  useEffect(() => { finishSessionRef.current = finishSession }, [finishSession])
+
+  // Tick. Remaining is derived from a wall-clock anchor (endAt), so a
+  // paused/frozen interval self-heals on the next tick — no state to drift
+  // while backgrounded, and resuming a cached Android activity is exact.
   useEffect(() => {
-    if (!running) {
+    if (!running || endAt === null) {
       if (intervalRef.current) clearInterval(intervalRef.current)
       return
     }
     intervalRef.current = setInterval(() => {
-      setRemaining(prev => Math.max(0, prev - 1))
-    }, 1000)
+      setRemaining(Math.max(0, Math.round((endAt - Date.now()) / 1000)))
+    }, 250)
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  }, [running, setRemaining])
+  }, [running, endAt, setRemaining])
 
   // Session expiry — runs once per commit where remaining hits 0 while running
   useEffect(() => {
@@ -272,8 +293,8 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
     new Audio(finishedSound).play()
     const label = mode === 'focus_time' ? 'Focus session' : mode === 'short_break_time' ? 'Short break' : 'Long break'
     sendNativeNotification(`${label} finished!`)
-    finishSession()
-  }, [remaining, running, mode, finishSession])
+    finishSessionRef.current()
+  }, [remaining, running, mode])
 
   const handleModeChange = (next: string) => {
     if (!config) return;
@@ -293,6 +314,7 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
   const handleToggle = async () => {
     if (!running) {
       sessionStartRef.current = new Date().toISOString()
+      setEndAt(Date.now() + remaining * 1000)
       setRunning(true)
       writeTimerSnapshot(localUserId, { mode, remaining, running: true, taskId: activeSelectedTaskId })
       saveTimerState({ mode, remaining, running: true, taskId: activeSelectedTaskId })
@@ -347,6 +369,18 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
   }
 
   // Red progress ring — shows time left, depletes clockwise from the top
+  useImperativeHandle(ref, () => ({
+    pauseTimer: () => {
+      if (!running) return
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      setRunning(false)
+      setEndAt(null)
+      writeTimerSnapshot(localUserId, { mode, remaining, running: false, taskId: activeSelectedTaskId })
+      saveTimerState({ mode, remaining, running: false, taskId: activeSelectedTaskId })
+    },
+    selectTask: (id: string) => handleTaskChange(id),
+  }), [running, mode, remaining, localUserId, activeSelectedTaskId, setRunning, writeTimerSnapshot, saveTimerState, handleTaskChange])
+
   const fraction = totalSeconds > 0 ? Math.max(0, Math.min(0.9999, remaining / totalSeconds)) : 0
   const end = -Math.PI / 2 - 2 * Math.PI * fraction
   const progressArc =
@@ -420,17 +454,13 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
       {/* Selected task */}
       <div className="mb-5 text-center">  
         { (
-          <Select value={activeSelectedTaskId ?? ''} onValueChange={v => {
-            const nextId = v || null
-            setSelectedTaskId(nextId)
-            saveTimerState({ mode, remaining, running, taskId: nextId })
-          }}>
+          <Select value={activeSelectedTaskId ?? ''} onValueChange={handleTaskChange}>
             <SelectTrigger className="mx-auto mt-2 h-8 max-w-[240px]" aria-label="Select a task">
               <SelectValue placeholder="Select a task" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__none">None</SelectItem>
-              {tasks.filter(t => t.is_completed !== 1).map(t => (
+              {filteredTasks.filter(t => t.is_completed !== 1).map(t => (
                 <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
               ))}
             </SelectContent>
@@ -466,6 +496,6 @@ const PomodoroCard = ({ running, setRunning, mode, setMode, remaining, setRemain
       </div>
     </section>
   )
-}
+})
 
 export default PomodoroCard
