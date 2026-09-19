@@ -1,6 +1,6 @@
 import type { LocalUser } from '@/db/schema.sqlite';
 import { supabase } from '../../db/supabase';
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { getDb } from '@/db/db';
 import type { AuthContextValue, AuthStatus } from './AuthContext';
 import { AuthContext } from './AuthContext';
@@ -23,6 +23,8 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [localUserId, setLocalUserId] = useState(GUEST_ID);
   const [needsReauth, setNeedsReauth] = useState(false);
   const db = useDb();
+  const statusRef = useRef(status);
+  useEffect(() => { statusRef.current = status }, [status]);
 
   async function fetchUsers() {
     if (!db) { return; }
@@ -197,6 +199,10 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!db) { console.error('signInAsAGuest skipped: db unavailable'); return; }
 
     try {
+      // Clear any lingering Supabase session so the auth state listener
+      // cannot fire with a stale SIGNED_IN/INITIAL_SESSION event.
+      await supabase.auth.signOut({ scope: 'local' });
+
       const users: LocalUser[] = await fetchUsers() ?? [];
       const guestUser = users.find((u) => u.id === GUEST_ID);
       if (!guestUser) {
@@ -303,9 +309,15 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       if (isMobile) {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          // Supabase already restored it from localStorage; the
-          // INITIAL_SESSION / SIGNED_IN listener will flip authStatus.
+        if (session?.user) {
+          // Actively restore the user instead of relying on the
+          // INITIAL_SESSION listener, which may not fire on Android.
+          const signedUser = await fetchSignedUser(session.user.email ?? session.user.id);
+          if (signedUser) {
+            setUser(signedUser);
+            setLocalUserId(signedUser.id);
+            setStatus('authenticated');
+          }
           return;
         }
         setNeedsReauth(true);
@@ -357,6 +369,10 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!db) { return; }
     const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Ignore auth events while in guest mode — a stale Supabase session
+      // from a previous sign-in can fire INITIAL_SESSION/SIGNED_IN after the
+      // user has already switched to guest.
+      if (statusRef.current === 'guest') return;
       // console.log(event, session)
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         if (!session?.user) return;
