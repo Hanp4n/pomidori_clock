@@ -121,7 +121,7 @@ const TagSelector = ({
           </button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-72 p-2">
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
             {tags.map((tag) => (
               <label
                 key={tag.id}
@@ -143,6 +143,9 @@ const TagSelector = ({
                 No tags available.
               </p>
             )}
+          </div>
+          <div className="flex flex-col gap-1">
+
             {(onCreate || canManage) && (
               <>
                 <div className="my-1 h-px bg-border" />
