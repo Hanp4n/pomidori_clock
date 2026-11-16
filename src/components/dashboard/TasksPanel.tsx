@@ -183,6 +183,7 @@ const TasksPanel = ({ selectedTaskId, selectTask }: { selectedTaskId: string | n
 
   const handleNewTaskOpenChange = (open: boolean) => {
     if (!open && isNewTaskFormDirty) {
+      setOpenNewTask(false)
       setConfirmDiscardOpen(true)
       return
     }
@@ -294,7 +295,13 @@ const TasksPanel = ({ selectedTaskId, selectTask }: { selectedTaskId: string | n
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setConfirmDiscardOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setConfirmDiscardOpen(false)
+                    setOpenNewTask(true)
+                  }}
+                >
                   Keep editing
                 </Button>
                 <Button
